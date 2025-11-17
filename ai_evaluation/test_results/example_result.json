@@ -1,0 +1,14 @@
+{
+  "test_case_name": "reasoning_logic_puzzle",
+  "timestamp": "2025-11-17T14:30:45.123456",
+  "test_case": "Category: reasoning\nDifficulty: medium\n\nThere are three boxes: one contains only apples, one contains only oranges, and one contains both apples and oranges. Each box is labeled, but all labels are incorrect. You can pick one fruit from one box without looking inside. Which box should you pick from to correctly label all three boxes?",
+  "response": "To solve this puzzle, you should pick a fruit from the box labeled \"Apples and Oranges.\"\n\nHere's the reasoning:\n\n1. Since all labels are incorrect, the box labeled \"Apples and Oranges\" must contain only one type of fruit (either only apples or only oranges).\n\n2. When you pick from this box, you'll discover which single fruit type it contains. Let's say you pick an apple.\n\n3. Now you know:\n   - The box labeled \"Apples and Oranges\" contains only apples\n   - The box labeled \"Apples\" cannot contain only apples (wrong label), and it can't contain only oranges (because that would go in the box labeled \"Oranges\"), so it must contain both apples and oranges\n   - The box labeled \"Oranges\" must contain only oranges\n\nBy picking from the \"Apples and Oranges\" labeled box, you can deduce the contents of all three boxes with just one pick.",
+  "metadata": {
+    "model_type": "anthropic",
+    "model_name": "claude-sonnet-4-20250514",
+    "max_tokens": 2000,
+    "temperature": 0.7,
+    "tokens_used": 287,
+    "duration_seconds": 3.45
+  }
+}
