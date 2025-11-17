@@ -1,7 +1,0 @@
-# ==================================================
-# File: reasoning_math_problem.txt
-# ==================================================
-Category: reasoning
-Difficulty: hard
-
-A train leaves Station A at 3:00 PM traveling at 60 mph. Another train leaves Station B (300 miles away from Station A) at 4:00 PM traveling toward Station A at 80 mph. At what time will they meet?

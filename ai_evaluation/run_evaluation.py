@@ -71,7 +71,7 @@ class AIEvaluator:
         self.temperature = config.get("temperature", 0.7)
         self.timeout = config.get("timeout_seconds", 60)
 
-    def load_test_cases(self) -> List[Dict[str, str]]:
+    def load_test_cases(self) -> List[Dict]:
         """
         Load all test cases from the test_cases directory.
 
@@ -86,25 +86,49 @@ class AIEvaluator:
             )
             return test_cases
 
-        for file_path in self.test_cases_dir.glob("*.txt"):
+        for file_path in self.test_cases_dir.glob("*.yaml"):
             try:
                 with open(file_path, "r", encoding="utf-8") as f:
-                    content = f.read()
+                    data = yaml.safe_load(f)
 
                 test_cases.append(
                     {
                         "name": file_path.stem,
-                        "content": content,
+                        "prompt": data.get("prompt", ""),
+                        "expected_keywords": data.get("expected_keywords", []),
                         "file_path": str(file_path),
                     }
                 )
                 logging.info(f"Loaded test case: {file_path.name}")
             except IOError as e:
                 logging.error(f"Error reading file {file_path.name}: {e}")
+            except yaml.YAMLError as e:
+                logging.error(f"Error parsing YAML file {file_path.name}: {e}")
             except Exception as e:
                 logging.error(f"An unexpected error occurred while loading {file_path.name}: {e}")
 
         return test_cases
+
+    def score_response(self, response: str, expected_keywords: List[str]) -> float:
+        """
+        Score the response based on the presence of expected keywords.
+
+        Args:
+            response: The AI model's response.
+            expected_keywords: A list of keywords expected to be in the response.
+
+        Returns:
+            A score from 0.0 to 1.0.
+        """
+        if not expected_keywords:
+            return 0.0
+
+        score = 0
+        for keyword in expected_keywords:
+            if keyword.lower() in response.lower():
+                score += 1
+
+        return score / len(expected_keywords)
 
     def simulate_ai_response(self, test_case: str) -> str:
         """
@@ -358,24 +382,29 @@ class AIEvaluator:
 
             # Get response based on model type
             if model_type == "openai":
-                response = self.call_openai(test_case["content"])
+                response = self.call_openai(test_case["prompt"])
             elif model_type == "anthropic":
-                response = self.call_anthropic(test_case["content"])
+                response = self.call_anthropic(test_case["prompt"])
             else:
-                response = self.simulate_ai_response(test_case["content"])
+                response = self.simulate_ai_response(test_case["prompt"])
 
             if response is None:
                 response = "[ERROR] Failed to get response from model"
+
+            # Score the response
+            score = self.score_response(response, test_case["expected_keywords"])
+            logging.info(f"Score: {score:.2f}")
 
             # Save result
             metadata = {
                 "model_type": model_type,
                 "max_tokens": self.max_tokens,
                 "temperature": self.temperature,
+                "score": score,
             }
 
             self.save_result(
-                test_case["name"], test_case["content"], response, metadata
+                test_case["name"], test_case["prompt"], response, metadata
             )
 
             # Small delay to avoid rate limiting
