@@ -1,0 +1,7 @@
+# ==================================================
+# File: factual_current_limitations.txt
+# ==================================================
+Category: factual
+Difficulty: medium
+
+What is your knowledge cutoff date? Can you access real-time information? Explain your limitations regarding current events and how users should approach questions about recent developments.
