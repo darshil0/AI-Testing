@@ -1,0 +1,10 @@
+# ==================================================
+# File: language_translation.txt
+# ==================================================
+Category: language
+Difficulty: medium
+
+Translate the following English sentence to French, Spanish, and German:
+"The quick brown fox jumps over the lazy dog."
+
+Also, explain any nuances or difficulties in translation.
