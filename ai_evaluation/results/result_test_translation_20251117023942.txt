@@ -1,0 +1,7 @@
+--- Test Case ---
+Translate the following sentence from English to French:
+"The weather is beautiful today."
+
+
+--- AI Model Output ---
+This is a simulated response from the AI model.
