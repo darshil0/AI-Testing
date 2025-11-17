@@ -58,6 +58,12 @@ ai_evaluation/
    python3 run_evaluation.py
    ```
 
+   To export all results to a single file, use the `--export-format` argument:
+   ```bash
+   python3 run_evaluation.py --export-format csv
+   ```
+   This will create a `export_YYYYMMDD_HHMMSS.csv` file in the `results` directory. Supported formats are `csv` and `json`.
+
 3. **View Results**
    
    Evaluation results are saved in `ai_evaluation/results/` with filenames following the pattern:
@@ -89,7 +95,7 @@ Potential future enhancements:
 - [ ] Automated scoring and comparison metrics
 - [ ] Web interface for viewing results
 - [ ] Batch evaluation capabilities
-- [ ] Export results to CSV/JSON for analysis
+- [x] Export results to CSV/JSON for analysis
 
 ## License
 

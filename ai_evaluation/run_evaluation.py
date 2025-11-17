@@ -7,6 +7,7 @@ It supports multiple AI providers and can be extended for custom models.
 """
 
 import os
+import csv
 import json
 import time
 import logging
@@ -256,6 +257,78 @@ class AIEvaluator:
             logging.error(f"An unexpected error occurred while saving the result: {e}")
             return None
 
+    def export_results(self, export_format: str) -> Optional[str]:
+        """
+        Export all results from the results directory to a single file.
+        Args:
+            export_format: The format for exporting ("csv" or "json").
+        Returns:
+            Path to the exported file, or None if an error occurred.
+        """
+        all_results = []
+        for result_file in self.results_dir.glob("*.json"):
+            if result_file.name.startswith("export_"):
+                continue
+            try:
+                with open(result_file, "r", encoding="utf-8") as f:
+                    all_results.append(json.load(f))
+            except (IOError, json.JSONDecodeError) as e:
+                logging.error(f"Error reading or parsing result file {result_file}: {e}")
+
+        if not all_results:
+            logging.warning("No results found to export.")
+            return None
+
+        # Sort results by timestamp
+        all_results.sort(key=lambda r: r.get("timestamp", ""))
+
+        export_filename = f"export_{datetime.now().strftime('%Y%m%d_%H%M%S')}"
+        export_path = self.results_dir / f"{export_filename}.{export_format}"
+
+        try:
+            if export_format == "json":
+                with open(export_path, "w", encoding="utf-8") as f:
+                    json.dump(all_results, f, indent=2, ensure_ascii=False)
+            elif export_format == "csv":
+                if not all_results:
+                    return None
+
+                # Dynamically determine headers from the first result's keys
+                headers = list(all_results[0].keys())
+
+                # Ensure 'metadata' is handled correctly if it's a dict
+                if 'metadata' in headers:
+                    # Get all unique keys from metadata dictionaries
+                    meta_keys = set()
+                    for r in all_results:
+                        if isinstance(r.get('metadata'), dict):
+                            meta_keys.update(r['metadata'].keys())
+
+                    # Add metadata keys to headers and remove the original 'metadata' field
+                    if meta_keys:
+                        headers.remove('metadata')
+                        headers.extend(sorted(list(meta_keys)))
+
+                with open(export_path, "w", newline="", encoding="utf-8") as f:
+                    writer = csv.DictWriter(f, fieldnames=headers)
+                    writer.writeheader()
+                    for result in all_results:
+                        # Flatten metadata if it exists
+                        if 'metadata' in result and isinstance(result['metadata'], dict):
+                            meta = result.pop('metadata')
+                            result.update(meta)
+                        writer.writerow(result)
+
+            logging.info(f"Successfully exported {len(all_results)} results to {export_path}")
+            return str(export_path)
+
+        except IOError as e:
+            logging.error(f"Error writing to export file {export_path}: {e}")
+            return None
+        except Exception as e:
+            logging.error(f"An unexpected error occurred during export: {e}")
+            return None
+
     def run_evaluation(self, model_type: str = "simulated") -> None:
         """
         Run evaluation on all test cases.
@@ -341,6 +414,12 @@ def main():
         default="config.yaml",
         help="Path to the config file (default: config.yaml)",
     )
+    parser.add_argument(
+        "--export-format",
+        choices=["csv", "json"],
+        default=None,
+        help="Export all results to a single file in the specified format (e.g., csv, json)",
+    )
 
     args = parser.parse_args()
 
@@ -351,6 +430,10 @@ def main():
     )
 
     evaluator.run_evaluation(model_type=args.model)
+
+    # Export results if the export flag is provided
+    if args.export_format:
+        evaluator.export_results(export_format=args.export_format)
 
 
 if __name__ == "__main__":

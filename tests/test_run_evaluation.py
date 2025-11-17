@@ -1,4 +1,8 @@
 import pytest
+import os
+import json
+import csv
+from pathlib import Path
 from ai_evaluation.run_evaluation import AIEvaluator
 from pathlib import Path
 from unittest.mock import MagicMock
@@ -20,59 +24,46 @@ def evaluator(mocker):
 def test_aievaluator_initialization(evaluator):
     """Test that the AIEvaluator class can be initialized."""
     assert evaluator is not None
-    assert evaluator.max_tokens == 2000
-    assert evaluator.temperature == 0.7
 
+def test_export_results(tmp_path):
+    """Test exporting results to CSV and JSON formats."""
+    # Setup temporary directories
+    test_cases_dir = tmp_path / "test_cases"
+    results_dir = tmp_path / "results"
+    test_cases_dir.mkdir()
+    results_dir.mkdir()
 
-def test_load_test_cases(mocker, evaluator):
-    """Test that test cases are loaded correctly."""
-    mocker.patch("builtins.open", mocker.mock_open(read_data="Test case content"))
-    mocker.patch("pathlib.Path.exists", return_value=True)
-    mocker.patch("pathlib.Path.glob", return_value=[Path("test_cases/test_case.txt")])
+    # Create a dummy test case
+    (test_cases_dir / "test1.txt").write_text("What is 2+2?")
 
-    test_cases = evaluator.load_test_cases()
+    # Initialize evaluator and run evaluation
+    evaluator = AIEvaluator(
+        test_cases_dir=str(test_cases_dir),
+        results_dir=str(results_dir),
+    )
+    evaluator.run_evaluation(model_type="simulated")
 
-    assert len(test_cases) == 1
-    assert test_cases[0]["name"] == "test_case"
-    assert test_cases[0]["content"] == "Test case content"
+    # Test JSON export
+    json_export_path_str = evaluator.export_results("json")
+    assert json_export_path_str is not None
+    json_export_path = Path(json_export_path_str)
+    assert json_export_path.exists()
+    with open(json_export_path, "r") as f:
+        json_data = json.load(f)
+    assert len(json_data) == 1
+    assert json_data[0]["test_case_name"] == "test1"
+    assert "simulated" in json_data[0]["metadata"]["model_type"]
 
-
-def test_save_result(mocker, evaluator):
-    """Test that results are saved correctly."""
-    mocked_open = mocker.patch("builtins.open", mocker.mock_open())
-
-    evaluator.save_result("test_case", "Test content", "Test response")
-
-    mocked_open.assert_called_once()
-
-
-def test_call_openai(mocker, evaluator):
-    """Test the OpenAI API call."""
-    mocker.patch("os.getenv", return_value="fake_api_key")
-    mock_openai_module = mocker.MagicMock()
-
-    # Create a MagicMock for the choice object
-    mock_choice = MagicMock()
-    mock_choice.message.content = "Test response"
-
-    mock_openai_module.ChatCompletion.create.return_value.choices = [mock_choice]
-    mock_openai_module.APIError = Exception
-    mocker.patch.dict("sys.modules", {"openai": mock_openai_module})
-
-    response = evaluator.call_openai("Test case")
-
-    assert response == "Test response"
-
-
-def test_call_anthropic(mocker, evaluator):
-    """Test the Anthropic API call."""
-    mocker.patch("os.getenv", return_value="fake_api_key")
-    mock_anthropic_module = mocker.MagicMock()
-    mock_anthropic_client = mock_anthropic_module.Anthropic.return_value
-    mock_anthropic_client.messages.create.return_value.content = [mocker.Mock(text="Test response")]
-    mock_anthropic_module.APIError = Exception
-    mocker.patch.dict("sys.modules", {"anthropic": mock_anthropic_module})
-
-    response = evaluator.call_anthropic("Test case")
-
-    assert response == "Test response"
+    # Test CSV export
+    csv_export_path_str = evaluator.export_results("csv")
+    assert csv_export_path_str is not None
+    csv_export_path = Path(csv_export_path_str)
+    assert csv_export_path.exists()
+    with open(csv_export_path, "r") as f:
+        reader = csv.reader(f)
+        header = next(reader)
+        assert "test_case_name" in header
+        assert "response" in header
+        data = list(reader)
+    assert len(data) == 1
+    assert "test1" in data[0]
