@@ -5,9 +5,23 @@ def evaluate_model(test_case_content):
     """
     Simulates an AI model evaluation.
     In a real-world scenario, this function would interact with an AI model.
-    For this example, it returns a placeholder response.
+    For this example, it returns a more realistic response based on the test case.
     """
-    return "This is a simulated response from the AI model."
+    if "capital of France" in test_case_content:
+        return "Paris is the capital of France."
+    elif "factorial" in test_case_content:
+        return """
+def factorial(n):
+    \"\"\"Calculates the factorial of a non-negative integer.\"\"\"
+    if n == 0:
+        return 1
+    else:
+        return n * factorial(n-1)
+"""
+    elif "Summarize" in test_case_content:
+        return "A quick brown fox jumps over a lazy dog."
+    else:
+        return "This is a simulated response from the AI model."
 
 def run_evaluation():
     """
@@ -31,7 +45,7 @@ def run_evaluation():
 
             model_output = evaluate_model(test_case_content)
 
-            result_filename = f"result_{os.path.splitext(filename)[0]}_{datetime.datetime.now().strftime('%Y%m%d%H%M%S')}.txt"
+            result_filename = f"result_{os.path.splitext(filename)[0]}.txt"
             result_path = os.path.join(results_dir, result_filename)
 
             with open(result_path, 'w') as f:

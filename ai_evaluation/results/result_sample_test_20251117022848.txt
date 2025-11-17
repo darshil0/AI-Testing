@@ -1,9 +1,0 @@
---- Test Case ---
-This is a sample test case.
-It contains a simple instruction for an AI model to follow.
-Instruction: Summarize the following text in one sentence:
-"The quick brown fox jumps over the lazy dog."
-
-
---- AI Model Output ---
-This is a simulated response from the AI model.
