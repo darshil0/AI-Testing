@@ -1,6 +1,6 @@
 # AI-Testing
 
-**Version: 1.1**
+**Version: 1.2**
 
 A comprehensive repository containing test cases and evaluation frameworks for assessing various AI models' performance, capabilities, and limitations.
 
@@ -20,15 +20,18 @@ The evaluation framework is located in the `ai_evaluation` directory and consist
 ```
 ai_evaluation/
 ├── test_cases/        # Test case definitions
-├── results/          # Evaluation outputs and metrics
-└── run_evaluation.py # Main evaluation script
+├── results/           # Evaluation outputs and metrics (auto-generated, gitignored)
+├── config.yaml        # Configuration for the evaluation script
+└── run_evaluation.py  # Main evaluation script
 ```
 
 ### Components
 
 - **`test_cases/`**: Contains test case files for evaluating AI models. Each test case is a text file with specific instructions or prompts designed to assess particular capabilities (e.g., reasoning, creativity, factual accuracy, safety).
 
-- **`results/`**: Stores evaluation results with timestamps. Each result file includes the original test case, the model's response, and metadata about the evaluation run.
+- **`results/`**: Stores evaluation results with timestamps. This directory is created automatically when the evaluation script is run. Each result file includes the original test case, the model's response, and metadata about the evaluation run. The contents of this directory are ignored by version control.
+
+- **`config.yaml`**: Configuration file for the evaluation script. It allows you to set parameters like `max_tokens`, `temperature`, and API timeouts.
 
 - **`run_evaluation.py`**: The main evaluation script that orchestrates the testing process by reading test cases, interfacing with AI models, and saving structured results.
 
