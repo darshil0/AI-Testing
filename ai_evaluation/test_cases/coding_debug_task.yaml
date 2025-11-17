@@ -1,0 +1,20 @@
+prompt: |
+  Category: coding
+  Difficulty: medium
+
+  Find and fix the bug in this Python function:
+
+  ```python
+  def calculate_average(numbers):
+      total = 0
+      for num in numbers:
+          total += num
+      return total / len(numbers)
+  ```
+
+  Test it with the input: calculate_average([])
+expected_keywords:
+  - "ZeroDivisionError"
+  - "empty list"
+  - "if not numbers"
+  - "return 0"

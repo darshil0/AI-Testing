@@ -1,7 +1,0 @@
-# ==================================================
-# File: creativity_brainstorm.txt
-# ==================================================
-Category: creativity
-Difficulty: easy
-
-Generate 5 creative names for a new eco-friendly coffee shop that emphasizes sustainability and community engagement.

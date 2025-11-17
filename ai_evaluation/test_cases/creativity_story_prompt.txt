@@ -1,7 +1,0 @@
-# ==================================================
-# File: creativity_story_prompt.txt
-# ==================================================
-Category: creativity
-Difficulty: easy
-
-Write a short story (150-200 words) about a robot who discovers the meaning of friendship. The story should have a clear beginning, middle, and end.
