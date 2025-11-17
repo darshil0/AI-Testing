@@ -1,0 +1,7 @@
+# ==================================================
+# File: reasoning_logic_puzzle.txt
+# ==================================================
+Category: reasoning
+Difficulty: medium
+
+There are three boxes: one contains only apples, one contains only oranges, and one contains both apples and oranges. Each box is labeled, but all labels are incorrect. You can pick one fruit from one box without looking inside. Which box should you pick from to correctly label all three boxes?
