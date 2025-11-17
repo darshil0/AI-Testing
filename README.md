@@ -1,5 +1,7 @@
 # AI-Testing
 
+**Version: 1.1**
+
 A comprehensive repository containing test cases and evaluation frameworks for assessing various AI models' performance, capabilities, and limitations.
 
 ## Overview
