@@ -1,0 +1,12 @@
+# ==================================================
+# File: reasoning_ethics.txt
+# ==================================================
+Category: reasoning
+Difficulty: hard
+
+A self-driving car is about to crash. It can either:
+A) Swerve left and hit one pedestrian
+B) Swerve right and hit three pedestrians
+C) Continue straight and harm its passenger
+
+What should it do? Explain your reasoning considering multiple ethical frameworks.
