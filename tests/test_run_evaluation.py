@@ -4,10 +4,25 @@ import json
 import csv
 from pathlib import Path
 from ai_evaluation.run_evaluation import AIEvaluator
+from pathlib import Path
+from unittest.mock import MagicMock
 
-def test_aievaluator_initialization():
+
+@pytest.fixture
+def evaluator(mocker):
+    """A fixture that provides a mocked AIEvaluator instance."""
+    mocker.patch("pathlib.Path.mkdir")
+    mocker.patch("yaml.safe_load", return_value={
+        "max_tokens": 2000,
+        "temperature": 0.7,
+        "timeout_seconds": 60,
+    })
+    mocker.patch("builtins.open", mocker.mock_open())
+    return AIEvaluator()
+
+
+def test_aievaluator_initialization(evaluator):
     """Test that the AIEvaluator class can be initialized."""
-    evaluator = AIEvaluator()
     assert evaluator is not None
 
 def test_export_results(tmp_path):
