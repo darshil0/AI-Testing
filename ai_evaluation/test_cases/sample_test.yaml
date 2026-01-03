@@ -1,7 +1,0 @@
-prompt: |
-  Summarize the following text in one sentence:
-  "The quick brown fox jumps over the lazy dog."
-expected_keywords:
-  - "fox"
-  - "jumps"
-  - "dog"

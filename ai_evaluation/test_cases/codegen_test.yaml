@@ -1,6 +1,0 @@
-prompt: "Write a Python function to calculate the factorial of a number."
-expected_keywords:
-  - "def"
-  - "factorial"
-  - "return"
-  - "if"

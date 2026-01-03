@@ -1,11 +1,8 @@
 import pytest
-import os
 import json
 import csv
 from pathlib import Path
 from ai_evaluation.run_evaluation import AIEvaluator
-from pathlib import Path
-from unittest.mock import MagicMock
 
 
 @pytest.fixture
@@ -24,6 +21,7 @@ def evaluator(mocker):
 def test_aievaluator_initialization(evaluator):
     """Test that the AIEvaluator class can be initialized."""
     assert evaluator is not None
+
 
 def test_export_results(tmp_path):
     """Test exporting results to CSV and JSON formats."""

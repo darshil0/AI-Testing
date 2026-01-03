@@ -1,0 +1,4 @@
+Category: Coding
+Difficulty: Medium
+
+Write a Python function to calculate the factorial of a number.
