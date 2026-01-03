@@ -4,20 +4,21 @@
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Code Style: flake8](https://img.shields.io/badge/code%20style-flake8-black.svg)](https://flake8.pycqa.org/en/latest/)
 [![Docker](https://img.shields.io/badge/docker-%230db7ed.svg?logo=docker&logoColor=white)](https://www.docker.com/)
+[![CI](https://github.com/darshil0/AI-Testing/actions/workflows/ci.yml/badge.svg)](https://github.com/darshil0/AI-Testing/actions/workflows/ci.yml)
 
-A professional evaluation framework designed to benchmark AI models across various domains. This repository provides a structured environment for testing models like GPT-4, Claude, and Gemini with standardized metrics, automated scoring, and reproducible results.
+A professional evaluation framework designed to benchmark AI models across various domains. This repository provides an enterprise-ready environment for testing models like GPT-4, Claude, Gemini, and **local LLMs via Ollama** with standardized metrics, automated judging, and professional analytics.
 
 ---
 
 ## 🚀 Features
 
-- **🔌 Multi-Model Benchmarking**: Native support for `OpenAI`, `Anthropic`, and **`Google Gemini 1.5`**.
-- **⚖️ LLM-as-a-Judge**: Automated quality scoring using SOTA models (GPT-4o/Claude 3 Opus) as evaluators.
-- **⚡ High-Throughput Parallelism**: Concurrent test execution for rapid batch processing.
-- **💰 Economics & Telemetry**: Integrated token counting, cost estimation, and latency tracking.
-- **🐳 Multi-Platform Ready**: Fully containerized with **Docker** for zero-setup deployment.
-- **✨ Rich CLI Experience**: Real-time progress tracking and aesthetic result summaries.
-- **📊 Comparison Reports**: Generate side-by-side performance analytics in CSV and JSON.
+- **🔌 Global Model Support**: Benchmark `OpenAI`, `Anthropic`, `Google Gemini`, and **Local Ollama** models in one run.
+- **⚖️ Specialized Judge Personas**: Evaluate responses through the lens of a **Critic**, **Helper**, or **Security Auditor**.
+- **📊 Professional Analytics**: Automated generation of latency, cost, and score charts via `analytics.py`.
+- **🕹️ Interactive Dashboard**: Explore your results in a rich, web-based UI using **Streamlit**.
+- **🛡️ Security Layer**: Built-in **PII scanning** to detect privacy leaks in model outputs.
+- **🧪 Dataset Pipeline**: Pull test cases directly from **HuggingFace** for industry-standard benchmarking.
+- **🐳 DevOps Ready**: Standardized with **Docker** and **GitHub Actions** CI/CD.
 
 ---
 
@@ -25,88 +26,72 @@ A professional evaluation framework designed to benchmark AI models across vario
 
 ```text
 AI-Testing/
-├── .env.example              # Template for API keys
-├── .flake8                   # Linting configuration
-├── CHANGELOG.md               # Detailed version history
-├── requirements.txt           # Project dependencies
+├── .github/workflows/        # CI/CD pipelines
 ├── ai_evaluation/
-│   ├── run_evaluation.py     # Core AIEvaluator engine (supports CLI)
-│   ├── test_cases/           # Standardized .txt test cases
-│   └── results/              # Auto-generated reports & exports
-├── tests/                    # Robust unit test suite
-└── docs/                     # Guides and setup documentation
+│   ├── run_evaluation.py     # Main engine (V1.1)
+│   ├── analytics.py          # Chart generation module
+│   ├── test_cases/           # Standardized .txt and .yaml cases
+│   └── results/              # Auto-generated reports & charts
+├── dashboard.py              # Streamlit interactive UI
+├── Dockerfile                # Container definitions
+└── requirements.txt           # Project dependencies
 ```
 
 ---
 
-## 📋 Prerequisites
+## 🛠️ Setup & Installation
 
-- **Python 3.8+**
-- A terminal/command prompt
-- OpenAI or Anthropic API Keys (for live model benchmarking)
-
----
-
-## 🛠️ Installation
-
-1. **Clone & Enter**:
-   ```bash
-   git clone https://github.com/darshil0/AI-Testing.git
-   cd AI-Testing
-   ```
-
-2. **Dependency Setup**:
+1. **Quick Install**:
    ```bash
    pip install -r requirements.txt
    ```
 
-3. **Security Configuration**:
-   ```bash
-   cp .env.example .env
-   # Edit .env to add your API keys:
-   # OPENAI_API_KEY=sk-...
-   ```
+2. **API Keys**: Configure `.env` using `.env.example`.
+   - `OPENAI_API_KEY`, `ANTHROPIC_API_KEY`, `GOOGLE_API_KEY` (Optional)
+   - `JUDGE_MODEL` (e.g., `openai`)
 
 ---
 
 ## 💻 Usage
 
-The `AIEvaluator` supports both programmatic use and a powerful Command Line Interface.
-
-### Execute Evaluation
-Run the engine from the project root:
+### 1. Execute Benchmarking
+Run evaluations on multiple models simultaneously:
 
 ```bash
-# Basic run (Simulated mode, Parallel)
-python ai_evaluation/run_evaluation.py
+# Benchmark OpenAI and a local Llama 3 model
+python ai_evaluation/run_evaluation.py --models openai ollama:llama3
 
-# Benchmark OpenAI models with Parallel execution
-python ai_evaluation/run_evaluation.py --model openai
-
-# Run benchmarking sequentially (disables multi-threading)
-python ai_evaluation/run_evaluation.py --model anthropic --sequential
+# Run with a specialized Persona (e.g., 'auditor')
+python ai_evaluation/run_evaluation.py --models simulated --persona auditor
 ```
 
-### Review Results
-Outputs are generated in the `ai_evaluation/results/` directory:
-- **Latencies**: Check the `CSV` export for the `duration` column to analyze model speed.
-- **Programmatic Data**: Use the `JSON` export for integration with other tools.
-- **Telemetry**: Review `evaluation.log` in the root directory for execution logs and any retry events.
+### 2. Generate Analytics
+To create professional charts and comparison reports:
+
+```bash
+python ai_evaluation/analytics.py
+```
+Check `ai_evaluation/results/benchmark_report.png` for the visual output.
+
+### 3. Launch Dashboard
+To explore results interactively:
+
+```bash
+streamlit run dashboard.py
+```
 
 ---
 
-## 🧪 Development & Quality
+## 🧪 Development & CI/CD
 
 We maintain high standards for code quality:
-
-- **Tests**: `python -m pytest`
-- **Linting**: `python -m flake8 .`
+- **Unit Tests**: `pytest` entries verified on every commit.
+- **Linting**: Strict `flake8` compliance.
+- **CI**: Automated GitHub Actions runs on Pull Requests.
 
 ---
 
 ## 🤝 Contributing
-
-Contributions are what make the open source community such an amazing place to learn, inspire, and create. Any contributions you make are **greatly appreciated**.
 
 1. Please read our [CONTRIBUTING.md](docs/CONTRIBUTING.md) guide.
 2. Check the [CHANGELOG.md](CHANGELOG.md) for version details.

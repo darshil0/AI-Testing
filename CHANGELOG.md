@@ -5,6 +5,23 @@ All notable changes to the AI-Testing project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.1.0] - 2026-01-03
+
+### Added
+- **📊 Visual Analytics Engine**: New `analytics.py` module to generate high-resolution performance plots and reports.
+- **🕹️ Interactive Dashboard**: Built-in **Streamlit** dashboard for real-time result exploration and response inspection.
+- **🏠 Local Model Support**: Integrated **Ollama** allowing you to benchmark local models (Llama, Mistral, etc.) alongside cloud APIs.
+- **🛡️ Security & Privacy Suite**:
+  - Automated **PII Scanning** to detect leaks of emails, phones, and credit cards in model responses.
+  *   **Judge Personas**: Specialized judges (`The Critic`, `The Auditor`, `The Helper`) for multi-dimensional evaluation.
+- **🧪 Dataset Pipeline**: Integrated **HuggingFace Datasets** loader for benchmarking against industry-standard datasets.
+- **🚀 CI/CD Integration**: Automated quality gates via **GitHub Actions** workflows.
+
+### Changed
+- **Engine**: Upgraded `run_evaluation` to support `.yaml` schemas with explicit expectations.
+
+---
+
 ## [1.0.0] - 2026-01-03
 
 ### Added
