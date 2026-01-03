@@ -46,23 +46,24 @@ def evaluator(mocker, mock_config):
     
     evaluator_instance = AIEvaluator(config_path=str(config_path))
 
-    # Mock the process_one method to return a valid result
-    mock_result = EvaluationResult(
-        test_case_name="test1",
-        category="General",
-        difficulty="Easy",
-        model_type="simulated:default",
-        prompt="What is 2+2?",
-        response="Simulated response: 4",
-        duration_seconds=0.1,
-        tokens_input=5,
-        tokens_output=10,
-        estimated_cost=0.0,
-        judge_score=0.9,
-        judge_reasoning="Good response, correct answer."
-    )
-    mocker.patch.object(evaluator_instance, 'process_one', return_value=mock_result)
+    # Mock the process_one method to return a valid result based on the model
+    def mock_process_one(file_path, model_id, persona):
+        return EvaluationResult(
+            test_case_name=file_path.stem,
+            model_type=model_id,
+            category="General",
+            difficulty="Easy",
+            prompt="What is 2+2?",
+            response="Simulated response: 4",
+            duration_seconds=0.1,
+            tokens_input=5,
+            tokens_output=10,
+            estimated_cost=0.0,
+            judge_score=0.9,
+            judge_reasoning="Good response, correct answer."
+        )
 
+    mocker.patch.object(evaluator_instance, 'process_one', side_effect=mock_process_one)
     return evaluator_instance, test_cases_dir, results_dir
 
 
@@ -182,7 +183,8 @@ def test_judge_response(evaluator, mocker):
     # Mock the judge model's response
     mock_judge_response = '{"score": 0.95, "reasoning": "Excellent answer, mentions Paris correctly"}'
     
-    with patch('ai_evaluation.models.get_model') as mock_get_model:
+    # Patch where the function is LOOKED UP, not where it is defined.
+    with patch('ai_evaluation.run_evaluation.get_model') as mock_get_model:
         mock_model = MagicMock()
         mock_model.call.return_value = (mock_judge_response, 10, 20)
         mock_get_model.return_value = mock_model
