@@ -40,6 +40,7 @@ env/
 # Results and logs
 ai_evaluation/results/*.json
 ai_evaluation/results/*.txt
+ai_evaluation/results/*.csv
 *.log
 
 # Jupyter Notebooks
