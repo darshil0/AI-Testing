@@ -391,6 +391,6 @@ This project is licensed under the MIT License - see [LICENSE](LICENSE) for deta
 
 ---
 
-**Made with ❤️ by the AI-Testing Team**
+**Made with ❤️ by Darshil**
 
 [⬆ Back to Top](#ai-testing-)
