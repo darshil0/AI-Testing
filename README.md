@@ -10,11 +10,14 @@ A professional evaluation framework designed to benchmark AI models across vario
 
 ## 🚀 Features
 
-- **🔌 Plug-and-Play Architecture**: Easily switch between `OpenAI`, `Anthropic`, and `Simulated` models.
-- **📚 Standardized Test Suite**: Over 20+ pre-defined test cases covering Reasoning, Coding, Safety, and Creativity.
-- **📊 Professional Reporting**: Automated results generation in `JSON`, `CSV`, and human-readable `TXT` formats.
-- **⚡ Developer First**: Fully linted with `flake8`, tested with `pytest`, and documented with clear workflows.
-- **⚙️ Environment Driven**: Managed via `.env` for secure API key handling.
+- **🔌 Plug-and-Play Architecture**: Easily switch between `OpenAI` (GPT-4), `Anthropic` (Claude 3), and `Simulated` models.
+- **⚡ Parallel Computing**: Built-in multi-threading to process batch test cases concurrently for maximum speed.
+- **🛡️ High Reliability**: Automatic **retries with exponential backoff** via `tenacity` to handle transient API or network failures.
+- **📊 Professional Reporting**: 
+  - Automated generation of `JSON` and `CSV` export summaries.
+  - Tracking of **performance latency** (duration per request).
+- **🪵 Advanced Logging**: Full logging system that records evaluation telemetry to `evaluation.log`.
+- **⚙️ Environment Driven**: Seamless configuration via `.env` for secure API key and log level management.
 
 ---
 
@@ -24,14 +27,14 @@ A professional evaluation framework designed to benchmark AI models across vario
 AI-Testing/
 ├── .env.example              # Template for API keys
 ├── .flake8                   # Linting configuration
+├── CHANGELOG.md               # Detailed version history
 ├── requirements.txt           # Project dependencies
 ├── ai_evaluation/
-│   ├── run_evaluation.py     # Main entry point & AIEvaluator class
-│   ├── test_cases/           # Standardized test case repository (.txt)
-│   ├── test_scenarios/       # Detailed scenario descriptions
-│   └── results/              # Evaluation outputs (Auto-generated)
-├── tests/                    # Unit tests for the framework
-└── docs/                     # Detailed guides (Setup, Contributing, etc.)
+│   ├── run_evaluation.py     # Core AIEvaluator engine (supports CLI)
+│   ├── test_cases/           # Standardized .txt test cases
+│   └── results/              # Auto-generated reports & exports
+├── tests/                    # Robust unit test suite
+└── docs/                     # Guides and setup documentation
 ```
 
 ---
@@ -40,7 +43,7 @@ AI-Testing/
 
 - **Python 3.8+**
 - A terminal/command prompt
-- (Optional) OpenAI or Anthropic API Keys
+- OpenAI or Anthropic API Keys (for live model benchmarking)
 
 ---
 
@@ -60,34 +63,35 @@ AI-Testing/
 3. **Security Configuration**:
    ```bash
    cp .env.example .env
-   # Open .env and add your API keys:
+   # Edit .env to add your API keys:
    # OPENAI_API_KEY=sk-...
-   # ANTHROPIC_API_KEY=sk-ant-...
    ```
 
 ---
 
 ## 💻 Usage
 
+The `AIEvaluator` supports both programmatic use and a powerful Command Line Interface.
+
 ### Execute Evaluation
-The `AIEvaluator` class handles the logic. Run it directly or specify a model:
+Run the engine from the project root:
 
 ```bash
-# Default: Simulated mode
+# Basic run (Simulated mode, Parallel)
 python ai_evaluation/run_evaluation.py
 
-# Benchmark OpenAI
+# Benchmark OpenAI models with Parallel execution
 python ai_evaluation/run_evaluation.py --model openai
 
-# Benchmark Anthropic
-python ai_evaluation/run_evaluation.py --model anthropic
+# Run benchmarking sequentially (disables multi-threading)
+python ai_evaluation/run_evaluation.py --model anthropic --sequential
 ```
 
 ### Review Results
-Once complete, check the `ai_evaluation/results/` directory for:
-- `result_<case>_<timestamp>.txt`: Detailed per-case output.
-- `results_export_<timestamp>.json`: Batch data for programmatic analysis.
-- `results_export_<timestamp>.csv`: Spreadsheet-ready summary.
+Outputs are generated in the `ai_evaluation/results/` directory:
+- **Latencies**: Check the `CSV` export for the `duration` column to analyze model speed.
+- **Programmatic Data**: Use the `JSON` export for integration with other tools.
+- **Telemetry**: Review `evaluation.log` in the root directory for execution logs and any retry events.
 
 ---
 
@@ -105,7 +109,7 @@ We maintain high standards for code quality:
 Contributions are what make the open source community such an amazing place to learn, inspire, and create. Any contributions you make are **greatly appreciated**.
 
 1. Please read our [CONTRIBUTING.md](docs/CONTRIBUTING.md) guide.
-2. Check the [Roadmap](docs/Implementation%20Summary.md) for planned features.
+2. Check the [CHANGELOG.md](CHANGELOG.md) for version details.
 3. Open a Pull Request!
 
 ---
