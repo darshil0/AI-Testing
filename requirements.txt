@@ -24,4 +24,9 @@ pytest-mock>=3.6.0
 
 # Optional: For advanced features
 # tiktoken>=0.5.0  # Token counting for OpenAI models
-# tenacity>=8.2.0  # Retry logic for API calls
+tenacity>=8.2.0  # Retry logic
+
+# Testing and Utilities
+pytest>=7.0.0
+pytest-mock>=3.0.0
+pyyaml>=6.0.0

@@ -1,2 +1,5 @@
+Category: Language
+Difficulty: Easy
+
 Translate the following sentence from English to French:
 "The weather is beautiful today."

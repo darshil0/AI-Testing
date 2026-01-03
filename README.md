@@ -14,10 +14,12 @@ This repository includes a simple framework for evaluating AI models. The framew
 
 1.  **Add Test Cases:** Create new text files in the `ai_evaluation/test_cases` directory. Each file should contain a specific test case for the AI model.
 
-2.  **Run the Evaluation:** Navigate to the `ai_evaluation` directory and run the following command:
-
     ```bash
-    python3 run_evaluation.py
+    # From the root directory
+    pip install -r requirements.txt
+    
+    # Run the evaluation script
+    python ai_evaluation/run_evaluation.py
     ```
 
 3.  **View the Results:** The evaluation results will be saved in the `ai_evaluation/results` directory. Each result file will be named with the original test case name and a timestamp.
