@@ -96,7 +96,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Fixed header formatting in legacy test cases.
 - Corrected boolean logic and error handling in file operations.
 
-## [0.1.0] - 2025-12-30
+## [0.1.0] - 2025-11-30
 
 ### Added
 - Initial repository structure
