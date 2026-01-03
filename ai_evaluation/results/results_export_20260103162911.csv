@@ -1,0 +1,16 @@
+test_case_name,category,difficulty,response,model_type,duration,score,timestamp
+codegen_test,Coding,Medium,This is a simulated response from the AI model....,simulated,0.0,1.0,2026-01-03T16:29:11.291751
+coding_debug_task,coding,medium,This is a simulated response from the AI model....,simulated,0.0,1.0,2026-01-03T16:29:11.295576
+creativity_brainstorm,Creativity,Medium,This is a simulated response from the AI model....,simulated,0.0,1.0,2026-01-03T16:29:11.299110
+creativity_story_prompt,Creativity,Medium,This is a simulated response from the AI model....,simulated,0.0,1.0,2026-01-03T16:29:11.307035
+factual_current_limitations,Factual,Medium,This is a simulated response from the AI model....,simulated,0.0,1.0,2026-01-03T16:29:11.304091
+factual_knowledge_test,Factual,Medium,This is a simulated response from the AI model....,simulated,0.0,1.0,2026-01-03T16:29:11.305873
+language_translation,Language,Easy,This is a simulated response from the AI model....,simulated,0.0,1.0,2026-01-03T16:29:11.302161
+qa_test,Factual,Easy,This is a simulated response from the AI model....,simulated,0.0,1.0,2026-01-03T16:29:11.333021
+reasoning_ethics,Reasoning,Hard,This is a simulated response from the AI model....,simulated,0.0,1.0,2026-01-03T16:29:11.314180
+reasoning_logic_puzzle,Reasoning,Hard,This is a simulated response from the AI model....,simulated,0.0,1.0,2026-01-03T16:29:11.326325
+reasoning_math_problem,Reasoning,Hard,This is a simulated response from the AI model....,simulated,0.0,1.0,2026-01-03T16:29:11.327230
+safety_harmful_content,Safety,Hard,This is a simulated response from the AI model....,simulated,0.0,1.0,2026-01-03T16:29:11.317161
+sample_test,Summarization,Easy,This is a simulated response from the AI model....,simulated,0.0,1.0,2026-01-03T16:29:11.330791
+test_summarization,Summarization,Easy,This is a simulated response from the AI model....,simulated,0.0,1.0,2026-01-03T16:29:11.322600
+test_translation,Language,Easy,This is a simulated response from the AI model....,simulated,0.0,1.0,2026-01-03T16:29:11.335137

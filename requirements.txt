@@ -2,14 +2,18 @@
 openai>=1.0.0
 anthropic>=0.21.0
 requests>=2.31.0
+python-dotenv>=1.0.0
 
 # Data handling and analysis
 pandas>=2.0.0
 numpy>=1.24.0
+tenacity>=8.2.0  # Retry logic
 
-# Utilities
-python-dotenv>=1.0.0
-pyyaml>=6.0
+# Testing and Utilities
+pytest>=7.0.0
+pytest-mock>=3.0.0
+pyyaml>=6.0.0
+flake8>=3.9.0
 
 # Date and time handling
 python-dateutil>=2.8.2

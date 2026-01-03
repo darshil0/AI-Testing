@@ -8,6 +8,8 @@ from ai_evaluation.run_evaluation import AIEvaluator
 @pytest.fixture
 def evaluator(mocker):
     """A fixture that provides a mocked AIEvaluator instance."""
+    mocker.patch("ai_evaluation.run_evaluation.load_dotenv")
+    mocker.patch("ai_evaluation.run_evaluation.logger")
     mocker.patch("pathlib.Path.mkdir")
     mocker.patch("yaml.safe_load", return_value={
         "max_tokens": 2000,
