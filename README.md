@@ -1,90 +1,119 @@
-# AI-Testing
+# AI-Testing 🤖
 
-A comprehensive repository for evaluating AI models using a structured testing framework. This project includes a standardized test suite, an extensible evaluation script, and tools for analyzing model performance.
+[![Python Version](https://img.shields.io/badge/python-3.8+-blue.svg)](https://www.python.org/downloads/)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![Code Style: flake8](https://img.shields.io/badge/code%20style-flake8-black.svg)](https://flake8.pycqa.org/en/latest/)
+
+A professional evaluation framework designed to benchmark AI models across various domains. This repository provides a structured environment for testing models like GPT-4, Claude, and Gemini with standardized metrics and reproducible results.
+
+---
 
 ## 🚀 Features
 
-- **Multi-Model Support**: interface for OpenAI, Anthropic, and simulated models.
-- **Standardized Test Cases**: categorized by domain (Reasoning, Creativity, Coding, etc.) and difficulty.
-- **Flexible Reporting**: Export results to JSON or CSV formats.
-- **Robustness**: Typesafe implementation with unit tests and linting.
+- **🔌 Plug-and-Play Architecture**: Easily switch between `OpenAI`, `Anthropic`, and `Simulated` models.
+- **📚 Standardized Test Suite**: Over 20+ pre-defined test cases covering Reasoning, Coding, Safety, and Creativity.
+- **📊 Professional Reporting**: Automated results generation in `JSON`, `CSV`, and human-readable `TXT` formats.
+- **⚡ Developer First**: Fully linted with `flake8`, tested with `pytest`, and documented with clear workflows.
+- **⚙️ Environment Driven**: Managed via `.env` for secure API key handling.
+
+---
+
+## 📂 Project Structure
+
+```text
+AI-Testing/
+├── .env.example              # Template for API keys
+├── .flake8                   # Linting configuration
+├── requirements.txt           # Project dependencies
+├── ai_evaluation/
+│   ├── run_evaluation.py     # Main entry point & AIEvaluator class
+│   ├── test_cases/           # Standardized test case repository (.txt)
+│   ├── test_scenarios/       # Detailed scenario descriptions
+│   └── results/              # Evaluation outputs (Auto-generated)
+├── tests/                    # Unit tests for the framework
+└── docs/                     # Detailed guides (Setup, Contributing, etc.)
+```
+
+---
 
 ## 📋 Prerequisites
 
-- Python 3.8+
-- pip (Python package installer)
+- **Python 3.8+**
+- A terminal/command prompt
+- (Optional) OpenAI or Anthropic API Keys
+
+---
 
 ## 🛠️ Installation
 
-1.  **Clone the repository**:
-    ```bash
-    git clone https://github.com/darshil0/AI-Testing.git
-    cd AI-Testing
-    ```
+1. **Clone & Enter**:
+   ```bash
+   git clone https://github.com/darshil0/AI-Testing.git
+   cd AI-Testing
+   ```
 
-2.  **Install dependencies**:
-    ```bash
-    pip install -r requirements.txt
-    ```
+2. **Dependency Setup**:
+   ```bash
+   pip install -r requirements.txt
+   ```
 
-3.  **Configure Environment**:
-    - Copy `.env.example` to `.env`.
-    - Add your API keys (OpenAI, Anthropic) if you intend to use real models.
-    ```bash
-    cp .env.example .env
-    ```
+3. **Security Configuration**:
+   ```bash
+   cp .env.example .env
+   # Open .env and add your API keys:
+   # OPENAI_API_KEY=sk-...
+   # ANTHROPIC_API_KEY=sk-ant-...
+   ```
+
+---
 
 ## 💻 Usage
 
-The core evaluation script can be run from the command line.
+### Execute Evaluation
+The `AIEvaluator` class handles the logic. Run it directly or specify a model:
 
-### Basic Run (Simulated Mode)
-Runs evaluation using a mock responder (no API keys required).
 ```bash
+# Default: Simulated mode
 python ai_evaluation/run_evaluation.py
-```
 
-### Specify Model
-Choose between `simulated`, `openai`, or `anthropic`.
-```bash
+# Benchmark OpenAI
 python ai_evaluation/run_evaluation.py --model openai
+
+# Benchmark Anthropic
+python ai_evaluation/run_evaluation.py --model anthropic
 ```
 
-*(Note: Real model usage requires valid API keys in `.env`)*
+### Review Results
+Once complete, check the `ai_evaluation/results/` directory for:
+- `result_<case>_<timestamp>.txt`: Detailed per-case output.
+- `results_export_<timestamp>.json`: Batch data for programmatic analysis.
+- `results_export_<timestamp>.csv`: Spreadsheet-ready summary.
 
-### Output
-Results are saved to `ai_evaluation/results/` in both JSON and text formats.
+---
 
-## 🧪 Development
+## 🧪 Development & Quality
 
-### Running Tests
-This project uses `pytest` for unit testing.
-```bash
-pytest
-```
+We maintain high standards for code quality:
 
-### Linting
-Ensure code quality with `flake8`.
-```bash
-flake8 .
-```
+- **Tests**: `python -m pytest`
+- **Linting**: `python -m flake8 .`
 
-## 📝 Creating Test Cases
+---
 
-Test cases are located in `ai_evaluation/test_cases/`. To add a new test:
+## 🤝 Contributing
 
-1. Create a `.txt` file.
-2. Add metadata headers (`Category`, `Difficulty`).
-3. Add your prompt.
+Contributions are what make the open source community such an amazing place to learn, inspire, and create. Any contributions you make are **greatly appreciated**.
 
-**Example:**
-```text
-Category: Reasoning
-Difficulty: Hard
+1. Please read our [CONTRIBUTING.md](docs/CONTRIBUTING.md) guide.
+2. Check the [Roadmap](docs/Implementation%20Summary.md) for planned features.
+3. Open a Pull Request!
 
-Explain the relationship between quantum mechanics and general relativity.
-```
+---
 
 ## 📄 License
 
-This project is licensed under the MIT License. See `LICENSE` for details.
+Distributed under the MIT License. See `LICENSE` for more information.
+
+---
+
+**[⬆ Back to Top](#ai-testing-)**
