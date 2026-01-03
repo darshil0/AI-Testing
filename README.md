@@ -69,52 +69,65 @@ AI-Testing/
 
 ---
 
-## 🚀 Quick Start
+## 🚀 Getting Started
+
+Welcome to the AI-Testing framework! This guide will walk you through setting up and running your first model evaluation.
 
 ### 1. Installation
+
+First, clone the repository and set up your environment:
 
 ```bash
 # Clone the repository
 git clone https://github.com/darshil0/AI-Testing.git
 cd AI-Testing
 
-# Create virtual environment
+# Create and activate a virtual environment
 python3 -m venv venv
-source venv/bin/activate  # Windows: venv\Scripts\activate
+source venv/bin/activate  # On Windows, use `venv\Scripts\activate`
 
-# Install dependencies
+# Install the required dependencies
 pip install -r requirements.txt
 ```
 
-### 2. Configuration
+### 2. API Configuration
+
+Next, configure your API keys for the models you want to test:
 
 ```bash
-# Copy environment template
+# Copy the environment file template
 cp .env.example .env
 
-# Edit with your API keys
-nano .env  # or your preferred editor
+# Open the .env file and add your API keys
+nano .env  # Or use your favorite text editor
 ```
 
-Required API keys (at least one):
+You'll need at least one of the following keys:
+
+```ini
+OPENAI_API_KEY="sk-proj-..."
+ANTHROPIC_API_KEY="sk-ant-..."
+GOOGLE_API_KEY="..."
+```
+
+### 3. Running an Evaluation
+
+Now you're ready to run an evaluation. The main script is `run_evaluation.py`.
+
+**It's best to run Python modules using the `-m` flag from the project root directory.** This ensures that all imports work correctly.
+
 ```bash
-OPENAI_API_KEY=sk-proj-...
-ANTHROPIC_API_KEY=sk-ant-...
-GOOGLE_API_KEY=your-google-key
+# Run a test with the simulated model (no API key needed)
+python -m ai_evaluation.run_evaluation --models simulated:default
+
+# Evaluate a real model like GPT-4o
+python -m ai_evaluation.run_evaluation --models openai:gpt-4o
+
+# Compare multiple models side-by-side
+python -m ai_evaluation.run_evaluation --models openai:gpt-4o anthropic:claude-sonnet-4-20250514
 ```
 
-### 3. Run Your First Evaluation
-
-```bash
-# Test without API keys (simulated mode)
-python ai_evaluation/run_evaluation.py --models simulated:default
-
-# Run with real models
-python ai_evaluation/run_evaluation.py --models openai:gpt-4o
-
-# Compare multiple models
-python ai_evaluation/run_evaluation.py --models openai:gpt-4o anthropic:claude-sonnet-4-20250514
-```
+After a run, results are saved in the `results/` directory.
 
 ---
 
@@ -122,18 +135,20 @@ python ai_evaluation/run_evaluation.py --models openai:gpt-4o anthropic:claude-s
 
 ### Basic Evaluation
 
+All commands should be run from the project's root directory.
+
 ```bash
-# Single model with default judge
-python ai_evaluation/run_evaluation.py --models openai:gpt-4o
+# Single model with the default judge
+python -m ai_evaluation.run_evaluation --models openai:gpt-4o
 
 # Multiple models in parallel
-python ai_evaluation/run_evaluation.py --models openai:gpt-4o ollama:llama3
+python -m ai_evaluation.run_evaluation --models openai:gpt-4o ollama:llama3
 
-# Use specialized judge persona
-python ai_evaluation/run_evaluation.py --models openai:gpt-4o --persona critic
+# Use a specialized judge persona
+python -m ai_evaluation.run_evaluation --models openai:gpt-4o --persona critic
 
-# Sequential execution (for debugging)
-python ai_evaluation/run_evaluation.py --models openai:gpt-4o --sequential
+# Disable parallel execution for easier debugging
+python -m ai_evaluation.run_evaluation --models openai:gpt-4o --sequential
 ```
 
 ### Model Format
@@ -159,7 +174,7 @@ Models are specified as `provider:model_name`:
 
 ```bash
 # Create performance charts
-python ai_evaluation/analytics.py
+python -m ai_evaluation.analytics
 
 # View in results/benchmark_report.png
 ```
@@ -256,7 +271,7 @@ docker run --env-file .env ai-testing
 
 # With custom command
 docker run --env-file .env ai-testing \
-  python ai_evaluation/run_evaluation.py --models openai:gpt-4o
+  python -m ai_evaluation.run_evaluation --models openai:gpt-4o
 
 # Using docker-compose
 docker-compose up

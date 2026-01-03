@@ -5,6 +5,18 @@ All notable changes to the AI-Testing project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.0.2] - 2026-01-04
+
+### Fixed
+- **Code Quality**: Removed unused imports (`re`, `json`, `Optional`) from `ai_evaluation/models.py`.
+- **Formatting**: Resolved all whitespace and formatting inconsistencies using `black`.
+
+### Changed
+- **Documentation**: Updated all `python` commands in `README.md` and `run_evaluation.py` to use the `python -m` module invocation style. This improves script reliability by ensuring correct path resolution.
+- **README**: Restructured the Quick Start section into a more user-friendly "Getting Started" guide.
+
+---
+
 ## [2.0.1] - 2026-01-03
 
 ### Fixed
@@ -158,7 +170,7 @@ python run_evaluation.py --model openai
 
 **New (v2.0+):**
 ```bash
-python run_evaluation.py --models openai:gpt-4o
+python -m ai_evaluation.run_evaluation --models openai:gpt-4o
 ```
 
 This change allows you to specify exact model versions and makes it easier to test multiple models simultaneously.
