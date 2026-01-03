@@ -1,25 +1,90 @@
 # AI-Testing
-This is a repository containing all the testcases for Evaluating the various AI Models.
 
-## AI Evaluation Framework
+A comprehensive repository for evaluating AI models using a structured testing framework. This project includes a standardized test suite, an extensible evaluation script, and tools for analyzing model performance.
 
-This repository includes a simple framework for evaluating AI models. The framework is located in the `ai_evaluation` directory and consists of the following components:
+## 🚀 Features
 
-- `test_cases/`: A directory containing test cases for the AI models. Each test case is a text file with instructions for the model.
-- `results/`: A directory where the evaluation results are stored. Each result file contains the original test case and the model's output.
-- `test_scenarios/`: A directory containing detailed descriptions of the test scenarios.
-- `run_evaluation.py`: A Python script that runs the evaluation. It reads the test cases, simulates an AI model's response, and saves the results to the `results` directory.
+- **Multi-Model Support**: interface for OpenAI, Anthropic, and simulated models.
+- **Standardized Test Cases**: categorized by domain (Reasoning, Creativity, Coding, etc.) and difficulty.
+- **Flexible Reporting**: Export results to JSON or CSV formats.
+- **Robustness**: Typesafe implementation with unit tests and linting.
 
-### How to Use
+## 📋 Prerequisites
 
-1.  **Add Test Cases:** Create new text files in the `ai_evaluation/test_cases` directory. Each file should contain a specific test case for the AI model.
+- Python 3.8+
+- pip (Python package installer)
 
+## 🛠️ Installation
+
+1.  **Clone the repository**:
     ```bash
-    # From the root directory
-    pip install -r requirements.txt
-    
-    # Run the evaluation script
-    python ai_evaluation/run_evaluation.py
+    git clone https://github.com/darshil0/AI-Testing.git
+    cd AI-Testing
     ```
 
-3.  **View the Results:** The evaluation results will be saved in the `ai_evaluation/results` directory. Each result file will be named with the original test case name and a timestamp.
+2.  **Install dependencies**:
+    ```bash
+    pip install -r requirements.txt
+    ```
+
+3.  **Configure Environment**:
+    - Copy `.env.example` to `.env`.
+    - Add your API keys (OpenAI, Anthropic) if you intend to use real models.
+    ```bash
+    cp .env.example .env
+    ```
+
+## 💻 Usage
+
+The core evaluation script can be run from the command line.
+
+### Basic Run (Simulated Mode)
+Runs evaluation using a mock responder (no API keys required).
+```bash
+python ai_evaluation/run_evaluation.py
+```
+
+### Specify Model
+Choose between `simulated`, `openai`, or `anthropic`.
+```bash
+python ai_evaluation/run_evaluation.py --model openai
+```
+
+*(Note: Real model usage requires valid API keys in `.env`)*
+
+### Output
+Results are saved to `ai_evaluation/results/` in both JSON and text formats.
+
+## 🧪 Development
+
+### Running Tests
+This project uses `pytest` for unit testing.
+```bash
+pytest
+```
+
+### Linting
+Ensure code quality with `flake8`.
+```bash
+flake8 .
+```
+
+## 📝 Creating Test Cases
+
+Test cases are located in `ai_evaluation/test_cases/`. To add a new test:
+
+1. Create a `.txt` file.
+2. Add metadata headers (`Category`, `Difficulty`).
+3. Add your prompt.
+
+**Example:**
+```text
+Category: Reasoning
+Difficulty: Hard
+
+Explain the relationship between quantum mechanics and general relativity.
+```
+
+## 📄 License
+
+This project is licensed under the MIT License. See `LICENSE` for details.
