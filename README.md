@@ -3,21 +3,21 @@
 [![Python Version](https://img.shields.io/badge/python-3.8+-blue.svg)](https://www.python.org/downloads/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Code Style: flake8](https://img.shields.io/badge/code%20style-flake8-black.svg)](https://flake8.pycqa.org/en/latest/)
+[![Docker](https://img.shields.io/badge/docker-%230db7ed.svg?logo=docker&logoColor=white)](https://www.docker.com/)
 
-A professional evaluation framework designed to benchmark AI models across various domains. This repository provides a structured environment for testing models like GPT-4, Claude, and Gemini with standardized metrics and reproducible results.
+A professional evaluation framework designed to benchmark AI models across various domains. This repository provides a structured environment for testing models like GPT-4, Claude, and Gemini with standardized metrics, automated scoring, and reproducible results.
 
 ---
 
 ## 🚀 Features
 
-- **🔌 Plug-and-Play Architecture**: Easily switch between `OpenAI` (GPT-4), `Anthropic` (Claude 3), and `Simulated` models.
-- **⚡ Parallel Computing**: Built-in multi-threading to process batch test cases concurrently for maximum speed.
-- **🛡️ High Reliability**: Automatic **retries with exponential backoff** via `tenacity` to handle transient API or network failures.
-- **📊 Professional Reporting**: 
-  - Automated generation of `JSON` and `CSV` export summaries.
-  - Tracking of **performance latency** (duration per request).
-- **🪵 Advanced Logging**: Full logging system that records evaluation telemetry to `evaluation.log`.
-- **⚙️ Environment Driven**: Seamless configuration via `.env` for secure API key and log level management.
+- **🔌 Multi-Model Benchmarking**: Native support for `OpenAI`, `Anthropic`, and **`Google Gemini 1.5`**.
+- **⚖️ LLM-as-a-Judge**: Automated quality scoring using SOTA models (GPT-4o/Claude 3 Opus) as evaluators.
+- **⚡ High-Throughput Parallelism**: Concurrent test execution for rapid batch processing.
+- **💰 Economics & Telemetry**: Integrated token counting, cost estimation, and latency tracking.
+- **🐳 Multi-Platform Ready**: Fully containerized with **Docker** for zero-setup deployment.
+- **✨ Rich CLI Experience**: Real-time progress tracking and aesthetic result summaries.
+- **📊 Comparison Reports**: Generate side-by-side performance analytics in CSV and JSON.
 
 ---
 

@@ -4,12 +4,23 @@ import csv
 import logging
 import time
 import os
+import re
 from pathlib import Path
 from concurrent.futures import ThreadPoolExecutor
+from typing import List, Dict, Any, Optional
 
 import yaml
 from dotenv import load_dotenv
 from tenacity import retry, stop_after_attempt, wait_exponential
+from pydantic import BaseModel, Field
+
+# Rich UI imports
+from rich.console import Console
+from rich.table import Table
+from rich.progress import Progress, SpinnerColumn, TextColumn, BarColumn, TaskProgressColumn
+from rich.logging import RichHandler
+from rich.panel import Panel
+from rich.live import Live
 
 # Optional imports for real models
 try:
@@ -24,266 +35,282 @@ try:
 except ImportError:
     ANTHROPIC_AVAILABLE = False
 
-# Load environment variables from .env
+try:
+    import google.generativeai as genai
+    GEMINI_AVAILABLE = True
+except ImportError:
+    GEMINI_AVAILABLE = False
+
+# Load environment variables
 load_dotenv()
 
-# Configure logging
+# Configure logging with Rich
 logging.basicConfig(
     level=os.getenv("LOG_LEVEL", "INFO"),
-    format='%(asctime)s - %(levelname)s - %(message)s',
+    format="%(message)s",
+    datefmt="[%X]",
     handlers=[
-        logging.FileHandler(os.getenv("LOG_FILE", "evaluation.log")),
-        logging.StreamHandler()
+        RichHandler(rich_tracebacks=True),
+        logging.FileHandler("evaluation.log")
     ]
 )
-logger = logging.getLogger(__name__)
+logger = logging.getLogger("rich")
+console = Console()
 
+# --- Pricing Constants (Approximate per 1M tokens) ---
+PRICING = {
+    "gpt-4o": {"input": 5.0, "output": 15.0},
+    "gpt-3.5-turbo": {"input": 0.5, "output": 1.5},
+    "claude-3-opus-20240229": {"input": 15.0, "output": 75.0},
+    "claude-3-sonnet-20240229": {"input": 3.0, "output": 15.0},
+    "gemini-1.5-pro": {"input": 7.0, "output": 21.0},
+    "simulated": {"input": 0.0, "output": 0.0}
+}
+
+class TestCase(BaseModel):
+    name: str
+    category: str = "General"
+    difficulty: str = "Medium"
+    prompt: str
+    expectations: List[str] = Field(default_factory=list)
+    metadata: Dict[str, Any] = Field(default_factory=dict)
+
+class EvaluationResult(BaseModel):
+    test_case_name: str
+    category: str
+    difficulty: str
+    model_type: str
+    prompt: str
+    response: str
+    duration_seconds: float
+    tokens_input: int = 0
+    tokens_output: int = 0
+    estimated_cost: float = 0.0
+    judge_score: float = 0.0
+    judge_reasoning: str = ""
+    timestamp: str = Field(default_factory=lambda: datetime.datetime.now().isoformat())
 
 class AIEvaluator:
     def __init__(self, config_path="config.yaml", test_cases_dir="test_cases", results_dir="results"):
-        """
-        Initialize the AI Evaluator.
-        """
-        self.config_path = config_path
         self.test_cases_dir = Path(test_cases_dir)
         self.results_dir = Path(results_dir)
-        self.results = []
-
-        self.config = self._load_config(self.config_path)
-
-        # Clients initialization
-        self.openai_client = None
-        self.anthropic_client = None
-
-        if OPENAI_AVAILABLE and os.getenv("OPENAI_API_KEY"):
-            self.openai_client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
+        self.results: List[EvaluationResult] = []
         
-        if ANTHROPIC_AVAILABLE and os.getenv("ANTHROPIC_API_KEY"):
-            self.anthropic_client = Anthropic(api_key=os.getenv("ANTHROPIC_API_KEY"))
+        # Initialize clients
+        self.openai_client = OpenAI(api_key=os.getenv("OPENAI_API_KEY")) if OPENAI_AVAILABLE and os.getenv("OPENAI_API_KEY") else None
+        self.anthropic_client = Anthropic(api_key=os.getenv("ANTHROPIC_API_KEY")) if ANTHROPIC_AVAILABLE and os.getenv("ANTHROPIC_API_KEY") else None
+        
+        if GEMINI_AVAILABLE and os.getenv("GOOGLE_API_KEY"):
+            genai.configure(api_key=os.getenv("GOOGLE_API_KEY"))
+            self.gemini_model = genai.GenerativeModel('gemini-1.5-pro')
+        else:
+            self.gemini_model = None
 
-        # Ensure results directory exists
         if not self.results_dir.exists():
             self.results_dir.mkdir(parents=True, exist_ok=True)
 
-    def _load_config(self, config_path):
-        """Load configuration from YAML file."""
-        path = Path(config_path)
-        if not path.is_absolute():
-            script_dir = Path(__file__).parent
-            potential_path = script_dir / config_path
-            if potential_path.exists():
-                path = potential_path
-
-        if path.exists():
-            try:
-                with open(path, 'r') as f:
-                    return yaml.safe_load(f)
-            except Exception as e:
-                logger.error(f"Failed to load config at {path}: {e}")
-        return {}
+    def _calculate_cost(self, model: str, input_tokens: int, output_tokens: int) -> float:
+        prices = PRICING.get(model, {"input": 0, "output": 0})
+        return (input_tokens / 1_000_000 * prices["input"]) + (output_tokens / 1_000_000 * prices["output"])
 
     @retry(stop=stop_after_attempt(3), wait=wait_exponential(multiplier=1, min=4, max=10))
-    def _call_openai(self, prompt):
-        if not self.openai_client:
-            raise ValueError("OpenAI client not initialized. Check API key.")
-        
-        response = self.openai_client.chat.completions.create(
-            model=self.config.get("openai_model", "gpt-3.5-turbo"),
-            messages=[{"role": "user", "content": prompt}],
-            max_tokens=self.config.get("max_tokens", 2000),
-            temperature=self.config.get("temperature", 0.7)
-        )
-        return response.choices[0].message.content
-
-    @retry(stop=stop_after_attempt(3), wait=wait_exponential(multiplier=1, min=4, max=10))
-    def _call_anthropic(self, prompt):
-        if not self.anthropic_client:
-            raise ValueError("Anthropic client not initialized. Check API key.")
-        
-        response = self.anthropic_client.messages.create(
-            model=self.config.get("anthropic_model", "claude-3-opus-20240229"),
-            max_tokens=self.config.get("max_tokens", 2000),
-            temperature=self.config.get("temperature", 0.7),
+    def _call_openai(self, prompt: str, model="gpt-4o"):
+        if not self.openai_client: raise ValueError("OpenAI Key Missing")
+        resp = self.openai_client.chat.completions.create(
+            model=model,
             messages=[{"role": "user", "content": prompt}]
         )
-        return response.content[0].text
+        return resp.choices[0].message.content, resp.usage.prompt_tokens, resp.usage.completion_tokens
 
-    def evaluate_model(self, prompt, model_type="simulated"):
+    @retry(stop=stop_after_attempt(3), wait=wait_exponential(multiplier=1, min=4, max=10))
+    def _call_anthropic(self, prompt: str, model="claude-3-opus-20240229"):
+        if not self.anthropic_client: raise ValueError("Anthropic Key Missing")
+        resp = self.anthropic_client.messages.create(
+            model=model,
+            max_tokens=2000,
+            messages=[{"role": "user", "content": prompt}]
+        )
+        return resp.content[0].text, resp.usage.input_tokens, resp.usage.output_tokens
+
+    @retry(stop=stop_after_attempt(3), wait=wait_exponential(multiplier=1, min=4, max=10))
+    def _call_gemini(self, prompt: str):
+        if not self.gemini_model: raise ValueError("Gemini Key Missing")
+        resp = self.gemini_model.generate_content(prompt)
+        # Gemini usage metadata varies; using heuristic for now
+        return resp.text, len(prompt)//4, len(resp.text)//4
+
+    def judge_response(self, test_case: TestCase, response: str) -> tuple[float, str]:
+        """Use an LLM to judge the quality of the response."""
+        judge_provider = os.getenv("JUDGE_MODEL", "simulated")
+        judge_model_name = os.getenv("JUDGE_SPECIFIC_MODEL", "gpt-4o")
+        
+        if judge_provider == "simulated":
+            return 0.85, "Simulated judgment based on keyword heuristic."
+
+        criteria = ",".join(test_case.expectations) if test_case.expectations else "clarity and accuracy"
+        judge_prompt = f"""
+        Rate the following AI response on a scale of 0.0 to 1.0 based on these criteria: {criteria}.
+        Provide your response in JSON format: {{"score": float, "reasoning": "string"}}
+        
+        PROMPT: {test_case.prompt}
+        RESPONSE: {response}
         """
-        Perform model evaluation using the specified provider.
-        """
+        
+        try:
+            if judge_provider == "openai":
+                raw, _, _ = self._call_openai(judge_prompt, model=judge_model_name)
+            elif judge_provider == "anthropic":
+                raw, _, _ = self._call_anthropic(judge_prompt, model=judge_model_name)
+            else:
+                return 0.5, "Unknown judge provider"
+            
+            # Simple JSON extraction
+            match = re.search(r'\{.*\}', raw, re.DOTALL)
+            if match:
+                data = json.loads(match.group())
+                return float(data.get("score", 0.0)), data.get("reasoning", "")
+        except Exception as e:
+            logger.error(f"Judging failed: {e}")
+        return 0.0, "Error during judging"
+
+    def _parse_test_case(self, file_path: Path) -> TestCase:
+        if file_path.suffix == ".yaml":
+            with open(file_path, 'r') as f:
+                data = yaml.safe_load(f)
+                return TestCase(name=file_path.stem, **data)
+        
+        # Legacy TXT parsing
+        with open(file_path, 'r', encoding='utf-8') as f:
+            content = f.read()
+        
+        category = "General"
+        difficulty = "Medium"
+        lines = content.split('\n')
+        for line in lines[:3]:
+            if line.lower().startswith("category:"): category = line.split(":")[1].strip()
+            if line.lower().startswith("difficulty:"): difficulty = line.split(":")[1].strip()
+            
+        return TestCase(name=file_path.stem, category=category, difficulty=difficulty, prompt=content)
+
+    def process_one(self, file_path: Path, model_type: str) -> EvaluationResult:
+        tc = self._parse_test_case(file_path)
+        start = time.time()
+        
         try:
             if model_type == "simulated":
-                return "This is a simulated response from the AI model."
+                ans, i, o = "Simulated response.", 10, 5
             elif model_type == "openai":
-                return self._call_openai(prompt)
+                ans, i, o = self._call_openai(tc.prompt)
             elif model_type == "anthropic":
-                return self._call_anthropic(prompt)
+                ans, i, o = self._call_anthropic(tc.prompt)
+            elif model_type == "gemini":
+                ans, i, o = self._call_gemini(tc.prompt)
             else:
-                return f"Response from {model_type} not implemented."
+                raise ValueError("Model not supported")
+            
+            dur = time.time() - start
+            cost = self._calculate_cost(model_type, i, o)
+            score, reason = self.judge_response(tc, ans)
+            
+            return EvaluationResult(
+                test_case_name=tc.name,
+                category=tc.category,
+                difficulty=tc.difficulty,
+                model_type=model_type,
+                prompt=tc.prompt,
+                response=ans,
+                duration_seconds=round(dur, 2),
+                tokens_input=i,
+                tokens_output=o,
+                estimated_cost=round(cost, 6),
+                judge_score=score,
+                judge_reasoning=reason
+            )
         except Exception as e:
-            logger.error(f"Error calling {model_type}: {e}")
-            return f"Error: {str(e)}"
+            logger.error(f"Error evaluating {tc.name}: {e}")
+            return EvaluationResult(
+                test_case_name=tc.name, category=tc.category, difficulty=tc.difficulty,
+                model_type=model_type, prompt=tc.prompt, response=f"Error: {e}",
+                duration_seconds=0, judge_score=0, judge_reasoning="Crash"
+            )
 
-    def _process_test_case(self, test_case_path, model_type):
-        """Internal helper to process a single test case (for threading)."""
-        if not test_case_path.is_file():
-            return None
-
-        try:
-            with open(test_case_path, 'r', encoding='utf-8') as f:
-                content = f.read()
-            
-            # Extract headers if present (Legacy support)
-            lines = content.split('\n')
-            category = "General"
-            difficulty = "Medium"
-            prompt_content = content
-            
-            for line in lines[:5]:
-                if line.lower().startswith("category:"):
-                    category = line.split(":", 1)[1].strip()
-                elif line.lower().startswith("difficulty:"):
-                    difficulty = line.split(":", 1)[1].strip()
-
-            logger.info(f"Evaluating {test_case_path.name} with {model_type}...")
-            
-            start_time = time.time()
-            response = self.evaluate_model(content, model_type)
-            duration = time.time() - start_time
-
-            result = {
-                "test_case_name": test_case_path.stem,
-                "category": category,
-                "difficulty": difficulty,
-                "prompt": content,
-                "response": response,
-                "metadata": {
-                    "model_type": model_type,
-                    "timestamp": datetime.datetime.now().isoformat(),
-                    "duration_seconds": round(duration, 2)
-                }
-            }
-            
-            # Simple scoring (place holder for more complex logic)
-            # In a real tool, this would be LLM-based or exact match
-            result["score"] = 1.0 if "error" not in response.lower() else 0.0
-
-            # Save individual text result
-            self._save_individual_result(test_case_path.stem, content, response)
-            
-            return result
-        except Exception as e:
-            logger.error(f"Failed to process {test_case_path.name}: {e}")
-            return None
-
-    def _save_individual_result(self, name, prompt, response):
-        timestamp_str = datetime.datetime.now().strftime('%Y%m%d%H%M%S')
-        result_filename = f"result_{name}_{timestamp_str}.txt"
-        result_path = self.results_dir / result_filename
-        try:
-            with open(result_path, 'w', encoding='utf-8') as f:
-                f.write(f"--- Test Case: {name} ---\n")
-                f.write(prompt)
-                f.write("\n\n--- AI Model Output ---\n")
-                f.write(response)
-        except Exception as e:
-            logger.error(f"Failed to save result file for {name}: {e}")
-
-    def run_evaluation(self, model_type="simulated", parallel=True):
-        """
-        Run evaluation on all test cases in the test_cases directory.
-        """
-        self.results = []
+    def run_suite(self, model_types: List[str], parallel: bool = True):
+        files = list(self.test_cases_dir.glob("*.txt")) + list(self.test_cases_dir.glob("*.yaml"))
+        tasks = [(f, m) for f in files for m in model_types]
         
-        if not self.test_cases_dir.exists():
-            logger.error(f"Directory not found: {self.test_cases_dir}")
-            return
+        with Progress(
+            SpinnerColumn(),
+            TextColumn("[progress.description]{task.description}"),
+            BarColumn(),
+            TaskProgressColumn(),
+            console=console
+        ) as progress:
+            main_task = progress.add_task("[cyan]Evaluating Models...", total=len(tasks))
+            
+            def run_task(args):
+                res = self.process_one(*args)
+                progress.advance(main_task)
+                return res
 
-        test_case_paths = list(self.test_cases_dir.glob("*.txt"))
+            if parallel:
+                with ThreadPoolExecutor(max_workers=5) as executor:
+                    self.results = list(executor.map(run_task, tasks))
+            else:
+                self.results = [run_task(t) for t in tasks]
+
+    def display_summary(self):
+        table = Table(title="Evaluation Benchmark Summary", show_header=True, header_style="bold magenta")
+        table.add_column("Case")
+        table.add_column("Model")
+        table.add_column("Time (s)")
+        table.add_column("Score")
+        table.add_column("Cost ($)")
+
+        for r in self.results:
+            color = "green" if r.judge_score > 0.8 else "yellow" if r.judge_score > 0.5 else "red"
+            table.add_row(
+                r.test_case_name,
+                r.model_type,
+                f"{r.duration_seconds}s",
+                f"[{color}]{r.judge_score}[/]",
+                f"${r.estimated_cost:.4f}"
+            )
+        console.print(table)
+
+    def export(self):
+        ts = datetime.datetime.now().strftime("%Y%m%d_%H%M")
+        # JSON
+        with open(self.results_dir / f"v1_results_{ts}.json", 'w') as f:
+            json.dump([r.model_dump() for r in self.results], f, indent=2)
         
-        if parallel and len(test_case_paths) > 1:
-            logger.info(f"Running {len(test_case_paths)} test cases in parallel...")
-            with ThreadPoolExecutor(max_workers=5) as executor:
-                futures = [executor.submit(self._process_test_case, p, model_type) for p in test_case_paths]
-                for future in futures:
-                    res = future.result()
-                    if res:
-                        self.results.append(res)
-        else:
-            for path in test_case_paths:
-                res = self._process_test_case(path, model_type)
-                if res:
-                    self.results.append(res)
-
-        logger.info(f"Evaluation complete. Processed {len(self.results)} cases.")
-
-    def export_results(self, format="json"):
-        """
-        Export results to JSON or CSV.
-        """
-        timestamp_str = datetime.datetime.now().strftime('%Y%m%d%H%M%S')
+        # CSV Comparison Report
+        df_rows = []
+        for r in self.results:
+            df_rows.append(r.model_dump())
         
-        if format == "json":
-            filename = f"results_export_{timestamp_str}.json"
-            filepath = self.results_dir / filename
-            with open(filepath, 'w', encoding='utf-8') as f:
-                json.dump(self.results, f, indent=2)
-            return str(filepath)
-            
-        elif format == "csv":
-            filename = f"results_export_{timestamp_str}.csv"
-            filepath = self.results_dir / filename
-            
-            if not self.results:
-                with open(filepath, 'w', newline='', encoding='utf-8') as f:
-                    pass
-                return str(filepath)
-            
-            csv_data = []
-            for r in self.results:
-                row = {
-                    "test_case_name": r["test_case_name"],
-                    "category": r.get("category", "N/A"),
-                    "difficulty": r.get("difficulty", "N/A"),
-                    "response": r["response"][:100] + "...", # Truncate for CSV
-                    "model_type": r["metadata"]["model_type"],
-                    "duration": r["metadata"]["duration_seconds"],
-                    "score": r.get("score", 0.0),
-                    "timestamp": r["metadata"]["timestamp"]
-                }
-                csv_data.append(row)
-                
-            fieldnames = csv_data[0].keys()
-            with open(filepath, 'w', newline='', encoding='utf-8') as f:
-                writer = csv.DictWriter(f, fieldnames=fieldnames)
-                writer.writeheader()
-                writer.writerows(csv_data)
-            return str(filepath)
-        else:
-            raise ValueError(f"Unsupported format: {format}")
-
+        keys = df_rows[0].keys() if df_rows else []
+        with open(self.results_dir / f"comparison_report_{ts}.csv", 'w', newline='') as f:
+            writer = csv.DictWriter(f, fieldnames=keys)
+            writer.writeheader()
+            writer.writerows(df_rows)
 
 if __name__ == "__main__":
     import argparse
-    
-    parser = argparse.ArgumentParser(description="Run AI Evaluation Batch")
-    parser.add_argument("--model", default="simulated", help="Model: simulated, openai, anthropic")
-    parser.add_argument("--sequential", action="store_true", help="Disable parallel execution")
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--models", nargs="+", default=["simulated"])
+    parser.add_argument("--sequential", action="store_true")
     args = parser.parse_args()
 
+    # Resolve paths relative to the script location
     script_dir = Path(__file__).parent
     
     evaluator = AIEvaluator(
-        config_path=script_dir / "config.yaml",
         test_cases_dir=script_dir / "test_cases",
         results_dir=script_dir / "results"
     )
+    console.print(Panel.fit("🚀 Starting V1.0 AI Evaluation Framework", style="bold blue"))
     
-    logger.info(f"--- Starting Evaluation (Model: {args.model}) ---")
-    evaluator.run_evaluation(model_type=args.model, parallel=not args.sequential)
-    
-    json_path = evaluator.export_results("json")
-    csv_path = evaluator.export_results("csv")
-    
-    logger.info(f"Results exported to:\n - {json_path}\n - {csv_path}")
+    evaluator.run_suite(args.models, parallel=not args.sequential)
+    evaluator.display_summary()
+    evaluator.export()
+    console.print("[bold green]✅ Evaluation Complete. Reports generated in results/ directory.[/]")

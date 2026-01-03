@@ -5,6 +5,23 @@ All notable changes to the AI-Testing project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.0.0] - 2026-01-03
+
+### Added
+- **🌐 Model Expansion**: Official support for **Google Gemini 1.5 Pro** via `google-generativeai`.
+- **⚖️ LLM-as-a-Judge**: Automated scoring system where high-capability models evaluate response quality based on criteria.
+- **✨ Rich CLI**: Premium terminal interface with progress bars, status updates, and beautiful summary tables (`rich`).
+- **🐳 Containerization**: Added `Dockerfile` and `docker-compose.yml` for isolated cross-platform execution.
+- **💰 Token & Cost Tracking**: Real-time calculation of token usage and estimated API costs for all major providers.
+- **🛠️ Advanced Test Schemas**: Added support for `.yaml` based test cases with built-in expectations and metadata.
+- **📈 Comprehensive Reporting**: New `comparison_report.csv` for side-by-side benchmarking of multiple models.
+
+### Changed
+- **Architecture**: Overhauled `AIEvaluator` with Pydantic for strict data validation and type safety.
+- **Parallelism**: Defaults to multi-threaded execution for high throughput.
+
+---
+
 ## [0.8.0] - 2026-01-03
 
 ### Added
