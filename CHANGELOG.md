@@ -5,6 +5,36 @@ All notable changes to the AI-Testing project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.0.1] - 2026-01-03
+
+### Fixed
+- **Dependencies**: Removed duplicate entries in `requirements.txt` (tenacity, pytest, pytest-mock, pyyaml)
+- **Path Resolution**: Improved config file path handling to work from any directory
+- **Error Handling**: Enhanced error messages and graceful degradation when test cases are missing
+- **JSON Parsing**: More robust judge response parsing with fallback mechanisms
+- **Test Case Parsing**: Better handling of malformed test case files
+- **Score Validation**: Added clamping to ensure judge scores stay within 0.0-1.0 range
+- **Directory Creation**: Automatic creation of missing directories on initialization
+- **PII Scanner**: Added error handling for invalid regex patterns
+- **Empty Results**: Proper handling when no test cases are found
+
+### Added
+- **Summary Table**: Rich table display of evaluation results in terminal
+- **Quick Stats**: Display average score, total cost, and PII warnings after evaluation
+- **Better Logging**: More informative console messages throughout evaluation process
+- **Help Text**: Improved CLI help with examples
+- **Sequential Mode**: Added `--sequential` flag for debugging
+- **Persona Validation**: CLI validation for judge persona choices
+
+### Changed
+- **Console Output**: Improved formatting and readability of terminal output
+- **Export Function**: Better feedback when exporting results
+- **Error Messages**: More specific and actionable error messages
+- **Test Case Loading**: Better feedback when loading HuggingFace datasets
+- **Documentation**: Updated README with clearer examples and troubleshooting
+
+---
+
 ## [2.0.0] - 2026-01-03
 
 ### Changed
@@ -15,10 +45,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 - **Extensible Model Factory**: A new `get_model` factory function allows for easier integration of new model providers.
 - **Formal Contribution Guide**: Added `docs/CONTRIBUTING.md` to standardize the contribution process.
+- **Configuration Validation**: Better validation of config.yaml structure
 
 ### Fixed
 - Improved error handling for model initialization and API failures.
 - Standardized token estimation heuristics for local models within the `OllamaModel` class.
+- Fixed path resolution issues when running from different directories
 
 ---
 
@@ -30,12 +62,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **🏠 Local Model Support**: Integrated **Ollama** allowing you to benchmark local models (Llama, Mistral, etc.) alongside cloud APIs.
 - **🛡️ Security & Privacy Suite**:
   - Automated **PII Scanning** to detect leaks of emails, phones, and credit cards in model responses.
-  *   **Judge Personas**: Specialized judges (`The Critic`, `The Auditor`, `The Helper`) for multi-dimensional evaluation.
+  - **Judge Personas**: Specialized judges (`The Critic`, `The Auditor`, `The Helper`) for multi-dimensional evaluation.
 - **🧪 Dataset Pipeline**: Integrated **HuggingFace Datasets** loader for benchmarking against industry-standard datasets.
 - **🚀 CI/CD Integration**: Automated quality gates via **GitHub Actions** workflows.
 
 ### Changed
 - **Engine**: Upgraded `run_evaluation` to support `.yaml` schemas with explicit expectations.
+- **Test Framework**: Improved test coverage and reliability
 
 ---
 
@@ -53,6 +86,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 - **Architecture**: Overhauled `AIEvaluator` with Pydantic for strict data validation and type safety.
 - **Parallelism**: Defaults to multi-threaded execution for high throughput.
+- **Documentation**: Complete rewrite of user-facing documentation
 
 ---
 
@@ -96,6 +130,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Fixed header formatting in legacy test cases.
 - Corrected boolean logic and error handling in file operations.
 
+---
+
 ## [0.1.0] - 2025-11-01
 
 ### Added
@@ -104,5 +140,41 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Test cases directory
 - Results directory
 - Basic run_evaluation.py script
+- MIT License
+- Initial README and documentation
 
 ---
+
+## Migration Notes
+
+### Upgrading from 1.x to 2.0
+
+The main breaking change is the model specification format:
+
+**Old (v1.x):**
+```bash
+python run_evaluation.py --model openai
+```
+
+**New (v2.0+):**
+```bash
+python run_evaluation.py --models openai:gpt-4o
+```
+
+This change allows you to specify exact model versions and makes it easier to test multiple models simultaneously.
+
+### Upgrading from 0.x to 1.0
+
+Version 1.0 introduced the judge system. Old test cases will continue to work, but you can now add expectations:
+
+```yaml
+expectations:
+  - "Provide clear explanation"
+  - "Include code examples"
+```
+
+---
+
+## Future Roadmap
+
+See [GitHub Issues](https://github.com/darshil0/AI-Testing/issues) for planned features and enhancements.
