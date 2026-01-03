@@ -5,6 +5,23 @@ All notable changes to the AI-Testing project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.0.0] - 2026-01-03
+
+### Changed
+- **Architectural Overhaul**: Major refactoring for modularity. Model-specific logic is now encapsulated in `ai_evaluation/models.py`.
+- **Centralized Configuration**: All settings, including pricing, personas, and PII patterns, are now managed in `ai_evaluation/config.yaml`. The evaluation engine is now fully config-driven.
+- **CLI Arguments**: The `--models` argument has been standardized to a `provider:model_name` format (e.g., `openai:gpt-4o`, `ollama:llama3`) for clarity and extensibility.
+
+### Added
+- **Extensible Model Factory**: A new `get_model` factory function allows for easier integration of new model providers.
+- **Formal Contribution Guide**: Added `docs/CONTRIBUTING.md` to standardize the contribution process.
+
+### Fixed
+- Improved error handling for model initialization and API failures.
+- Standardized token estimation heuristics for local models within the `OllamaModel` class.
+
+---
+
 ## [1.1.0] - 2026-01-03
 
 ### Added
@@ -89,4 +106,3 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Basic run_evaluation.py script
 
 ---
-

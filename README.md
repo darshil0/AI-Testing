@@ -2,7 +2,7 @@
 
 [![Python Version](https://img.shields.io/badge/python-3.8+-blue.svg)](https://www.python.org/downloads/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
-[![Code Style: flake8](https://img.shields.io/badge/code%20style-flake8-black.svg)](https://flake8.pycqa.org/en/latest/)
+[![Code Style: black](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/psf/black)
 [![Docker](https://img.shields.io/badge/docker-%230db7ed.svg?logo=docker&logoColor=white)](https://www.docker.com/)
 [![CI](https://github.com/darshil0/AI-Testing/actions/workflows/ci.yml/badge.svg)](https://github.com/darshil0/AI-Testing/actions/workflows/ci.yml)
 
@@ -28,8 +28,10 @@ A professional evaluation framework designed to benchmark AI models across vario
 AI-Testing/
 ├── .github/workflows/        # CI/CD pipelines
 ├── ai_evaluation/
-│   ├── run_evaluation.py     # Main engine (V1.1)
+│   ├── models.py             # Modular model handlers
+│   ├── run_evaluation.py     # Main engine (V2.0)
 │   ├── analytics.py          # Chart generation module
+│   ├── config.yaml           # Centralized configuration
 │   ├── test_cases/           # Standardized .txt and .yaml cases
 │   └── results/              # Auto-generated reports & charts
 ├── dashboard.py              # Streamlit interactive UI
@@ -48,21 +50,20 @@ AI-Testing/
 
 2. **API Keys**: Configure `.env` using `.env.example`.
    - `OPENAI_API_KEY`, `ANTHROPIC_API_KEY`, `GOOGLE_API_KEY` (Optional)
-   - `JUDGE_MODEL` (e.g., `openai`)
 
 ---
 
 ## 💻 Usage
 
 ### 1. Execute Benchmarking
-Run evaluations on multiple models simultaneously:
+Run evaluations on multiple models simultaneously using the `provider:model_name` format.
 
 ```bash
-# Benchmark OpenAI and a local Llama 3 model
-python ai_evaluation/run_evaluation.py --models openai ollama:llama3
+# Benchmark OpenAI's GPT-4o and a local Llama 3 model
+python ai_evaluation/run_evaluation.py --models openai:gpt-4o ollama:llama3
 
 # Run with a specialized Persona (e.g., 'auditor')
-python ai_evaluation/run_evaluation.py --models simulated --persona auditor
+python ai_evaluation/run_evaluation.py --models simulated:default --persona auditor
 ```
 
 ### 2. Generate Analytics
@@ -86,7 +87,7 @@ streamlit run dashboard.py
 
 We maintain high standards for code quality:
 - **Unit Tests**: `pytest` entries verified on every commit.
-- **Linting**: Strict `flake8` compliance.
+- **Linting**: Strict `flake8` and `black` compliance.
 - **CI**: Automated GitHub Actions runs on Pull Requests.
 
 ---

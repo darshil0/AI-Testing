@@ -21,9 +21,6 @@ pandas>=2.0.0
 numpy>=1.24.0
 tenacity>=8.2.0  # Retry logic
 
-# Safety and PII (Simple alternative if full Presidio is too heavy)
-pii-identifier>=0.3.0 
-
 # Testing and Utilities
 pytest>=7.0.0
 pytest-mock>=3.0.0
