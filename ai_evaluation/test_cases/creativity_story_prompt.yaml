@@ -1,0 +1,8 @@
+prompt: |
+  Write a short story (150-200 words) about a robot who discovers the meaning of friendship. The story should have a clear beginning, middle, and end.
+expected_keywords:
+  - "robot"
+  - "friendship"
+  - "discovered"
+  - "feeling"
+  - "connection"
