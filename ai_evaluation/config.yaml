@@ -17,16 +17,17 @@ default_model_params:
 # --- Pricing ---
 # Cost per million tokens
 pricing:
-  "gpt-4o": { "input": 5.0, "output": 15.0 }
-  "gpt-3.5-turbo": { "input": 0.5, "output": 1.5 }
-  "claude-3-opus-20240229": { "input": 15.0, "output": 75.0 }
-  "claude-3-sonnet-20240229": { "input": 3.0, "output": 15.0 }
-  "gemini-1.5-pro": { "input": 7.0, "output": 21.0 }
-  "simulated": { "input": 0.0, "output": 0.0 }
+  "gpt-4o": { input: 5.0, output: 15.0 }
+  "gpt-3.5-turbo": { input: 0.5, output: 1.5 }
+  "claude-3-opus-20240229": { input: 15.0, output: 75.0 }
+  "claude-3-sonnet-20240229": { input: 3.0, output: 15.0 }
+  "gemini-1.5-pro": { input: 7.0, output: 21.0 }
+  "simulated": { input: 0.0, output: 0.0 }
 
 # --- Judge Configuration ---
 judge:
-  model: "openai:gpt-4o" # Model used for judging responses
+  # Format: "<provider>:<model_name>"
+  model: "openai:gpt-4o"  # Model used for judging responses
 
 judge_personas:
   critic: "You are a highly critical judge. You penalize even minor logical inconsistencies and formatting errors."
