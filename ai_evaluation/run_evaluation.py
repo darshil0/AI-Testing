@@ -373,7 +373,7 @@ MODEL RESPONSE: {response}"""
         console.print(f"[green]✓[/] Results saved to: {run_path.name}")
 
 
-if __name__ == "__main__":
+def main():
     import argparse
 
     parser = argparse.ArgumentParser(
@@ -381,9 +381,9 @@ if __name__ == "__main__":
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog="""
 Examples:
-  python -m ai_evaluation.run_evaluation --models simulated:default
-  python -m ai_evaluation.run_evaluation --models openai:gpt-4o anthropic:claude-sonnet-4-20250514
-  python -m ai_evaluation.run_evaluation --models ollama:llama3 --persona critic
+  run-evaluation --models simulated:default
+  run-evaluation --models openai:gpt-4o anthropic:claude-sonnet-4-20250514
+  run-evaluation --models ollama:llama3 --persona critic
         """,
     )
     parser.add_argument(
@@ -415,7 +415,7 @@ Examples:
         evaluator = AIEvaluator(config_path=args.config)
         console.print(
             Panel.fit(
-                f"🤖 AI Benchmark V2.0\nPersona: {args.persona}\nModels: {', '.join(args.models)}",
+                f"🤖 AI Benchmark V2.1.0\nPersona: {args.persona}\nModels: {', '.join(args.models)}",
                 style="bold green",
             )
         )
@@ -428,10 +428,7 @@ Examples:
         evaluator.export()
 
         console.print("\n[bold cyan]✨ Evaluation complete![/]")
-        console.print("[dim]Run 'python ai_evaluation/analytics.py' for charts[/]")
-        console.print(
-            "[dim]Run 'streamlit run dashboard.py' for interactive dashboard[/]"
-        )
+        console.print("[dim]Run 'view-dashboard' for interactive dashboard[/]")
 
     except FileNotFoundError as e:
         console.print(f"[bold red]Error:[/] {e}")
@@ -441,3 +438,7 @@ Examples:
     except Exception as e:
         console.print(f"[bold red]Fatal error:[/] {e}")
         logger.exception("Fatal error during evaluation")
+
+
+if __name__ == "__main__":
+    main()
