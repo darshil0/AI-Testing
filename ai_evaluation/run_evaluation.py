@@ -69,11 +69,13 @@ class EvaluationResult(BaseModel):
     judge_reasoning: str = ""
     pii_found: bool = False
     pii_types: List[str] = []
-    timestamp: str = Field(default_factory=lambda: datetime.datetime.now().isoformat())
+    timestamp: str = Field(
+        default_factory=lambda: datetime.datetime.now().isoformat()
+    )
 
 
 class AIEvaluator:
-    def __init__(self, config_path="ai_evaluation/config.yaml"):
+    def __init__(self, config_path: str = "ai_evaluation/config.yaml") -> None:
         # Handle relative paths from project root
         if not Path(config_path).exists():
             alt_path = Path(__file__).parent / "config.yaml"
@@ -82,7 +84,7 @@ class AIEvaluator:
             else:
                 raise FileNotFoundError(f"Config file not found at {config_path}")
 
-        with open(config_path, "r") as f:
+        with open(config_path, "r", encoding="utf-8") as f:
             self.config = yaml.safe_load(f)
 
         # Resolve paths relative to config location
@@ -102,7 +104,7 @@ class AIEvaluator:
         self.results_dir.mkdir(parents=True, exist_ok=True)
         self.test_cases_dir.mkdir(parents=True, exist_ok=True)
 
-    def load_from_hf(self, dataset_name: str, split: str = "test", count: int = 5):
+    def load_from_hf(self, dataset_name: str, split: str = "test", count: int = 5) -> None:
         """Load test cases from HuggingFace datasets."""
         try:
             from datasets import load_dataset
@@ -128,7 +130,7 @@ class AIEvaluator:
 
     def _pii_scan(self, text: str) -> Tuple[bool, List[str]]:
         """Simple regex-based PII scanner."""
-        found_types = []
+        found_types: List[str] = []
         for p_type, pattern in self.config.get("pii_patterns", {}).items():
             try:
                 if re.search(pattern, text):
@@ -197,7 +199,7 @@ MODEL RESPONSE: {response}"""
         try:
             if file_path.suffix == ".yaml":
                 with open(file_path, "r", encoding="utf-8") as f:
-                    data = yaml.safe_load(f)
+                    data = yaml.safe_load(f) or {}
                     return TestCase(name=file_path.stem, **data)
 
             with open(file_path, "r", encoding="utf-8") as f:
@@ -269,14 +271,14 @@ MODEL RESPONSE: {response}"""
                 model_type=model_id,
                 prompt=tc.prompt,
                 response=f"Error: {str(e)}",
-                duration_seconds=0,
+                duration_seconds=0.0,
                 judge_score=0.0,
                 judge_reasoning=f"Fatal error during processing: {str(e)}",
             )
 
     def run_suite(
         self, model_ids: List[str], persona: str = "default", parallel: bool = True
-    ):
+    ) -> None:
         """Run evaluation suite across all test cases and models."""
         files = list(self.test_cases_dir.glob("*.txt")) + list(
             self.test_cases_dir.glob("*.yaml")
@@ -304,7 +306,7 @@ MODEL RESPONSE: {response}"""
         ) as progress:
             main_task = progress.add_task("[cyan]Evaluating...", total=len(tasks))
 
-            def runner(task_data):
+            def runner(task_data: Tuple[Path, str, str]) -> EvaluationResult:
                 result = self.process_one(*task_data)
                 progress.advance(main_task)
                 return result
@@ -317,7 +319,7 @@ MODEL RESPONSE: {response}"""
             else:
                 self.results = [runner(task) for task in tasks]
 
-    def print_summary(self):
+    def print_summary(self) -> None:
         """Print a summary table of results."""
         if not self.results:
             console.print("[yellow]No results to display[/]")
@@ -351,7 +353,7 @@ MODEL RESPONSE: {response}"""
         if pii_count > 0:
             console.print(f"[bold red]⚠ PII Warnings:[/] {pii_count} responses")
 
-    def export(self):
+    def export(self) -> None:
         """Export results to JSON files."""
         if not self.results:
             logger.warning("No results to export")
@@ -373,7 +375,7 @@ MODEL RESPONSE: {response}"""
         console.print(f"[green]✓[/] Results saved to: {run_path.name}")
 
 
-def main():
+def main() -> None:
     import argparse
 
     parser = argparse.ArgumentParser(
