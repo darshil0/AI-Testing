@@ -1,7 +1,9 @@
-# Environment variables
+# --- Environment variables ---
 .env
+.env.*
+!.env.example
 
-# Python
+# --- Python ---
 __pycache__/
 *.py[cod]
 *$py.class
@@ -19,17 +21,21 @@ parts/
 sdist/
 var/
 wheels/
+share/python-wheels/
 *.egg-info/
 .installed.cfg
 *.egg
+MANIFEST
 
-# Virtual environments
+# --- Virtual environments ---
 venv/
 ENV/
 env/
-.venv
+.venv/
+env.bak/
+venv.bak/
 
-# IDEs
+# --- IDEs ---
 .vscode/
 .idea/
 *.swp
@@ -37,22 +43,31 @@ env/
 *~
 .DS_Store
 
-# Results and logs
-ai_evaluation/results/*.json
-ai_evaluation/results/*.txt
+# --- Results and logs ---
+ai_evaluation/results/
 *.log
+pip-log.txt
+pip-delete-this-directory.txt
 
-# Jupyter Notebooks
+# --- Jupyter Notebooks ---
 .ipynb_checkpoints
-*.ipynb
+# *.ipynb  <-- Uncomment this if you want to block all notebooks
 
-# Testing
+# --- Testing & Coverage ---
 .pytest_cache/
+.tox/
+.nox/
 .coverage
+.coverage.*
 htmlcov/
+.cache/
+nosetests.xml
+coverage.xml
+*.cover
 
-# Documentation
+# --- Documentation ---
 docs/_build/
 
-# OS
+# --- OS ---
 Thumbs.db
+desktop.ini
