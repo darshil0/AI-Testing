@@ -1,7 +1,21 @@
-# Environment variables
-.env
+# --- AI-Testing Specific ---
+# Ignore all result exports but keep the directory structure
+ai_evaluation/results/*.json
+ai_evaluation/results/*.txt
+ai_evaluation/results/*.csv
+ai_evaluation/results/*.png
+!ai_evaluation/results/.gitkeep
 
-# Python
+# Ignore private keys and local config overrides
+.env
+.env.local
+ai_evaluation/config.local.yaml
+
+# Logs
+*.log
+evaluation.log
+
+# --- Python Standard ---
 __pycache__/
 *.py[cod]
 *$py.class
@@ -23,37 +37,29 @@ wheels/
 .installed.cfg
 *.egg
 
-# Virtual environments
+# --- Virtual Environments ---
 venv/
 ENV/
 env/
-.venv
+.venv/
 
-# IDEs
+# --- IDEs & OS ---
 .vscode/
 .idea/
 *.swp
 *.swo
-*~
 .DS_Store
+Thumbs.db
 
-# Results and logs
-ai_evaluation/results/*.json
-ai_evaluation/results/*.txt
-ai_evaluation/results/*.csv
-*.log
-
-# Jupyter Notebooks
-.ipynb_checkpoints
-*.ipynb
-
-# Testing
+# --- Testing & Coverage ---
 .pytest_cache/
 .coverage
+.coverage.*
 htmlcov/
+nosetests.xml
+coverage.xml
+*.cover
 
-# Documentation
+# --- Documentation ---
 docs/_build/
-
-# OS
-Thumbs.db
+site/
