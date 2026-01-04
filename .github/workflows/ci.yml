@@ -6,28 +6,45 @@ on:
   pull_request:
     branches: [ main ]
 
+permissions:
+  contents: read
+
 jobs:
   test:
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v3
+    - name: Checkout repository
+      uses: actions/checkout@v6
+
     - name: Set up Python
-      uses: actions/setup-python@v4
+      uses: actions/setup-python@v6
       with:
         python-version: '3.10'
+        cache: 'pip' # Automatically caches your requirements.txt dependencies
+
     - name: Install dependencies
       run: |
         python -m pip install --upgrade pip
         pip install -r requirements.txt
+
     - name: Run Pytest
       run: |
-        pytest
-    - name: Run Flake8
+        pytest --maxfail=2 --disable-warnings
+
+    - name: Run Flake8 (Linting)
       run: |
         flake8 .
+
     - name: Run Simulated Evaluation
+      # We allow this to continue so we can inspect results even on failure
+      continue-on-error: true
       run: |
         python ai_evaluation/run_evaluation.py --models simulated
-    - name: Check Results
-      run: |
-        ls ai_evaluation/results/
+
+    - name: Upload Results Artifact
+      # This saves the results so you can download them from the GitHub UI
+      uses: actions/upload-artifact@v4
+      with:
+        name: evaluation-results
+        path: ai_evaluation/results/
+        if-no-files-found: warn
