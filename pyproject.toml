@@ -7,9 +7,7 @@ name = "ai-evaluation-framework"
 version = "2.1.0"
 description = "A professional, enterprise-ready evaluation framework for benchmarking AI models."
 authors = [{ name = "Darshil", email = "darshil@example.com" }]
-# Modern PEP 639 way to handle licenses
-license = "MIT"
-license-files = ["LICENSE"]
+license = { text = "MIT" }
 readme = "README.md"
 requires-python = ">=3.9"
 keywords = ["AI", "evaluation", "benchmarking", "LLM", "NLP"]
@@ -27,7 +25,7 @@ classifiers = [
     "Topic :: Scientific/Engineering :: Artificial Intelligence",
 ]
 
-# Core dependencies needed to RUN the application
+# Core dependencies
 dependencies = [
     "openai>=1.2.0",
     "anthropic>=0.21.0",
@@ -50,7 +48,6 @@ dependencies = [
     "pyyaml>=6.0.0",
 ]
 
-# Optional dependencies for developers (keeps the core package lean)
 [project.optional-dependencies]
 dev = [
     "pytest>=7.4.0",
@@ -69,11 +66,9 @@ Homepage = "https://github.com/darshil0/AI-Testing"
 Issues = "https://github.com/darshil0/AI-Testing/issues"
 Repository = "https://github.com/darshil0/AI-Testing.git"
 
-[tool.setuptools.packages.find]
-where = ["."]
-include = ["ai_evaluation*"]
+[tool.setuptools]
+packages = ["ai_evaluation"]
 
-# Included to complement your previously shared .flake8 file
 [tool.black]
 line-length = 88
 target-version = ['py39']
