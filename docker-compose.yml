@@ -1,10 +1,25 @@
-version: '3.8'
-
 services:
   ai-evaluator:
-    build: .
+    # Use a descriptive container name for easier CLI management
+    container_name: ai_evaluator_app
+    build: 
+      context: .
+      dockerfile: Dockerfile
+    
+    # Mount local code for live-reloading (standard for development)
     volumes:
       - .:/app
+    
+    # Load secrets and config from your .env file
     env_file:
       - .env
+    
+    environment:
+      - PYTHONUNBUFFERED=1  # Ensures real-time logging
+      - PYTHONDONTWRITEBYTECODE=1 # Keeps your local folder clean of __pycache__
+    
+    # Automatically restart if the script crashes due to a network error
+    restart: on-failure
+    
+    # Command to run your evaluation
     command: python ai_evaluation/run_evaluation.py --models simulated
