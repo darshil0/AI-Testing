@@ -1,7 +1,3 @@
-This **Contributing Guide** is comprehensive and sets exactly the right tone for an open-source project. I have polished the document to remove hidden formatting issues (like non-breaking spaces in bash scripts) and enhanced the technical sections to reflect the **v2.1.0** architectural standards.
-
----
-
 # Contributing to AI-Testing
 
 Thank you for your interest in contributing! This document provides guidelines to help you through the process of improving this framework.
