@@ -46,25 +46,16 @@ A professional, enterprise-ready evaluation framework for benchmarking AI models
 ```
 AI-Testing/
 ├── ai_evaluation/
-│   ├── config.yaml              # Centralized configuration
-│   ├── models.py                # Model adapters (OpenAI, Anthropic, etc.)
+│   ├── __init__.py
 │   ├── run_evaluation.py        # Main evaluation engine
-│   ├── analytics.py             # Chart generation
-│   ├── test_cases/              # Test prompts (.txt, .yaml)
-│   │   ├── reasoning_logic_puzzle.txt
-│   │   ├── code_optimization.yaml
-│   │   └── ...
-│   └── results/                 # Generated reports
-│       ├── latest_results.json
-│       └── run_20260103_143000.json
+│   ├── dashboard.py             # Streamlit dashboard
+│   ├── models.py                # Model adapters (OpenAI, Anthropic, etc.)
+│   ├── config.yaml              # Centralized configuration
+│   └── test_cases/              # Test prompts
 ├── tests/                       # Unit tests
-├── dashboard.py                 # Streamlit dashboard
+├── pyproject.toml               # Project definition and dependencies
 ├── Dockerfile                   # Container definition
-├── requirements.txt             # Python dependencies
 └── docs/                        # Documentation
-    ├── CONTRIBUTING.md
-    ├── Setup.md
-    └── Quick Reference.md
 ```
 
 ---
@@ -75,7 +66,7 @@ Welcome to the AI-Testing framework! This guide will walk you through setting up
 
 ### 1. Installation
 
-First, clone the repository and set up your environment:
+First, clone the repository and install the project in editable mode:
 
 ```bash
 # Clone the repository
@@ -86,9 +77,11 @@ cd AI-Testing
 python3 -m venv venv
 source venv/bin/activate  # On Windows, use `venv\Scripts\activate`
 
-# Install the required dependencies
-pip install -r requirements.txt
+# Install the project and its dependencies
+pip install -e .
 ```
+
+Installing with `-e` (editable mode) allows you to modify the source code and see changes instantly without reinstalling.
 
 ### 2. API Configuration
 
@@ -112,22 +105,23 @@ GOOGLE_API_KEY="..."
 
 ### 3. Running an Evaluation
 
-Now you're ready to run an evaluation. The main script is `run_evaluation.py`.
+After installation, the framework provides two command-line scripts:
 
-**It's best to run Python modules using the `-m` flag from the project root directory.** This ensures that all imports work correctly.
+- `run-evaluation`: The main script to run your test suites.
+- `view-dashboard`: Launches the Streamlit dashboard to view results.
 
 ```bash
 # Run a test with the simulated model (no API key needed)
-python -m ai_evaluation.run_evaluation --models simulated:default
+run-evaluation --models simulated:default
 
 # Evaluate a real model like GPT-4o
-python -m ai_evaluation.run_evaluation --models openai:gpt-4o
+run-evaluation --models openai:gpt-4o
 
 # Compare multiple models side-by-side
-python -m ai_evaluation.run_evaluation --models openai:gpt-4o anthropic:claude-sonnet-4-20250514
+run-evaluation --models openai:gpt-4o anthropic:claude-sonnet-4-20250514
 ```
 
-After a run, results are saved in the `results/` directory.
+After a run, results are saved in `ai_evaluation/results/`.
 
 ---
 
@@ -135,20 +129,18 @@ After a run, results are saved in the `results/` directory.
 
 ### Basic Evaluation
 
-All commands should be run from the project's root directory.
-
 ```bash
 # Single model with the default judge
-python -m ai_evaluation.run_evaluation --models openai:gpt-4o
+run-evaluation --models openai:gpt-4o
 
 # Multiple models in parallel
-python -m ai_evaluation.run_evaluation --models openai:gpt-4o ollama:llama3
+run-evaluation --models openai:gpt-4o ollama:llama3
 
 # Use a specialized judge persona
-python -m ai_evaluation.run_evaluation --models openai:gpt-4o --persona critic
+run-evaluation --models openai:gpt-4o --persona critic
 
 # Disable parallel execution for easier debugging
-python -m ai_evaluation.run_evaluation --models openai:gpt-4o --sequential
+run-evaluation --models openai:gpt-4o --sequential
 ```
 
 ### Model Format
@@ -170,20 +162,11 @@ Models are specified as `provider:model_name`:
 - `helper`: Focus on clarity and helpfulness
 - `auditor`: Security-focused, checks for safety violations
 
-### Generate Analytics
-
-```bash
-# Create performance charts
-python -m ai_evaluation.analytics
-
-# View in results/benchmark_report.png
-```
-
 ### Launch Interactive Dashboard
 
 ```bash
-# Start Streamlit app
-streamlit run dashboard.py
+# Start the Streamlit dashboard
+view-dashboard
 
 # Opens at http://localhost:8501
 ```
