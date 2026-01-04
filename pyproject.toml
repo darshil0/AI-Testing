@@ -7,21 +7,36 @@ name = "ai-evaluation-framework"
 version = "2.1.0"
 description = "A professional, enterprise-ready evaluation framework for benchmarking AI models."
 authors = [{ name = "Darshil", email = "darshil@example.com" }]
-license = { file = "LICENSE" }
+# Modern PEP 639 way to handle licenses
+license = "MIT"
+license-files = ["LICENSE"]
 readme = "README.md"
+requires-python = ">=3.9"
+keywords = ["AI", "evaluation", "benchmarking", "LLM", "NLP"]
 classifiers = [
+    "Development Status :: 5 - Production/Stable",
+    "Intended Audience :: Developers",
+    "Intended Audience :: Science/Research",
     "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
     "License :: OSI Approved :: MIT License",
     "Operating System :: OS Independent",
+    "Topic :: Scientific/Engineering :: Artificial Intelligence",
 ]
+
+# Core dependencies needed to RUN the application
 dependencies = [
     "openai>=1.2.0",
     "anthropic>=0.21.0",
     "google-generativeai>=0.4.0",
+    "ollama>=0.1.0",
     "requests>=2.31.0",
     "python-dotenv>=1.0.0",
     "pydantic>=2.0.0",
-    "ollama>=0.1.0",
+    "pydantic-settings>=2.0.0",
     "datasets>=2.16.0",
     "rich>=13.0.0",
     "streamlit>=1.30.0",
@@ -30,12 +45,19 @@ dependencies = [
     "pandas>=2.0.0",
     "numpy>=1.24.0",
     "tenacity>=8.2.0",
-    "pytest>=7.0.0",
-    "pytest-mock>=3.6.0",
-    "pyyaml>=6.0.0",
-    "flake8>=6.0.0",
     "python-dateutil>=2.8.2",
     "jsonschema>=4.17.0",
+    "pyyaml>=6.0.0",
+]
+
+# Optional dependencies for developers (keeps the core package lean)
+[project.optional-dependencies]
+dev = [
+    "pytest>=7.4.0",
+    "pytest-mock>=3.10.0",
+    "flake8>=6.0.0",
+    "black>=24.0.0",
+    "isort>=5.12.0",
 ]
 
 [project.scripts]
@@ -45,7 +67,13 @@ view-dashboard = "ai_evaluation.dashboard:main"
 [project.urls]
 Homepage = "https://github.com/darshil0/AI-Testing"
 Issues = "https://github.com/darshil0/AI-Testing/issues"
+Repository = "https://github.com/darshil0/AI-Testing.git"
 
 [tool.setuptools.packages.find]
 where = ["."]
 include = ["ai_evaluation*"]
+
+# Included to complement your previously shared .flake8 file
+[tool.black]
+line-length = 88
+target-version = ['py39']
