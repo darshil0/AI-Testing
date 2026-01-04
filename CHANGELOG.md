@@ -5,6 +5,22 @@ All notable changes to the AI-Testing project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.1.0] - 2026-01-04
+
+### Added
+- **Project Packaging**: Introduced `pyproject.toml` to define the project as an installable package.
+- **Console Scripts**: Created `run-evaluation` and `view-dashboard` scripts for easier execution.
+
+### Changed
+- **Project Structure**: Consolidated all source code into the `ai_evaluation` directory by moving `dashboard.py`.
+- **Documentation**: Overhauled `README.md` with a modern project structure, clearer installation instructions (`pip install -e .`), and usage examples for the new console scripts.
+- **Code Quality**: Standardized all script execution to use `python -m` for better path resolution and fixed all linting issues.
+
+### Fixed
+- **Testing**: Corrected a `unittest.mock.patch` targeting error and improved mocking strategy in `tests/test_run_evaluation.py` to ensure test reliability.
+
+---
+
 ## [2.0.1] - 2026-01-03
 
 ### Fixed
@@ -158,7 +174,7 @@ python run_evaluation.py --model openai
 
 **New (v2.0+):**
 ```bash
-python run_evaluation.py --models openai:gpt-4o
+python -m ai_evaluation.run_evaluation --models openai:gpt-4o
 ```
 
 This change allows you to specify exact model versions and makes it easier to test multiple models simultaneously.

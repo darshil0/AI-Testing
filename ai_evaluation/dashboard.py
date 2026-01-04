@@ -3,19 +3,28 @@ import json
 import pandas as pd
 import glob
 from pathlib import Path
+import subprocess
+import sys
 
-st.set_page_config(page_title="AI Benchmark Dashboard", layout="wide")
 
-st.title("🤖 AI-Testing Benchmark Dashboard")
-st.markdown("Interactive analysis of your model evaluation runs.")
+def show_dashboard():
+    st.set_page_config(page_title="AI Benchmark Dashboard", layout="wide")
 
-# Load available runs
-run_files = glob.glob("ai_evaluation/results/run_*.json")
-run_files.sort(reverse=True)
+    st.title("🤖 AI-Testing Benchmark Dashboard")
+    st.markdown("Interactive analysis of your model evaluation runs.")
 
-if not run_files:
-    st.warning("No evaluation runs found. Run an evaluation first!")
-else:
+    # Get the directory of the currently running script
+    script_dir = Path(__file__).parent
+    results_dir = script_dir / "results"
+
+    # Load available runs
+    run_files = glob.glob(str(results_dir / "run_*.json"))
+    run_files.sort(reverse=True)
+
+    if not run_files:
+        st.warning(f"No evaluation runs found in {results_dir}. Run an evaluation first!")
+        st.stop()
+
     selected_run = st.sidebar.selectbox("Select Evaluation Run", run_files)
 
     with open(selected_run, "r") as f:
@@ -94,5 +103,17 @@ else:
         else:
             st.success("No PII leaks detected in this run.")
 
-st.sidebar.markdown("---")
-st.sidebar.info("V1.1.0 - Production Ready")
+    st.sidebar.markdown("---")
+    st.sidebar.info("V2.1.0 - Production Ready")
+
+
+def main():
+    """Entry point for the command line."""
+    # This is a bit of a workaround to run streamlit from a script
+    # It executes streamlit with the current script's path
+    script_path = Path(__file__).resolve()
+    subprocess.run([sys.executable, "-m", "streamlit", "run", str(script_path)])
+
+
+if __name__ == "__main__":
+    show_dashboard()

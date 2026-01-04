@@ -46,75 +46,82 @@ A professional, enterprise-ready evaluation framework for benchmarking AI models
 ```
 AI-Testing/
 ├── ai_evaluation/
-│   ├── config.yaml              # Centralized configuration
-│   ├── models.py                # Model adapters (OpenAI, Anthropic, etc.)
+│   ├── __init__.py
 │   ├── run_evaluation.py        # Main evaluation engine
-│   ├── analytics.py             # Chart generation
-│   ├── test_cases/              # Test prompts (.txt, .yaml)
-│   │   ├── reasoning_logic_puzzle.txt
-│   │   ├── code_optimization.yaml
-│   │   └── ...
-│   └── results/                 # Generated reports
-│       ├── latest_results.json
-│       └── run_20260103_143000.json
+│   ├── dashboard.py             # Streamlit dashboard
+│   ├── models.py                # Model adapters (OpenAI, Anthropic, etc.)
+│   ├── config.yaml              # Centralized configuration
+│   └── test_cases/              # Test prompts
 ├── tests/                       # Unit tests
-├── dashboard.py                 # Streamlit dashboard
+├── pyproject.toml               # Project definition and dependencies
 ├── Dockerfile                   # Container definition
-├── requirements.txt             # Python dependencies
 └── docs/                        # Documentation
-    ├── CONTRIBUTING.md
-    ├── Setup.md
-    └── Quick Reference.md
 ```
 
 ---
 
-## 🚀 Quick Start
+## 🚀 Getting Started
+
+Welcome to the AI-Testing framework! This guide will walk you through setting up and running your first model evaluation.
 
 ### 1. Installation
+
+First, clone the repository and install the project in editable mode:
 
 ```bash
 # Clone the repository
 git clone https://github.com/darshil0/AI-Testing.git
 cd AI-Testing
 
-# Create virtual environment
+# Create and activate a virtual environment
 python3 -m venv venv
-source venv/bin/activate  # Windows: venv\Scripts\activate
+source venv/bin/activate  # On Windows, use `venv\Scripts\activate`
 
-# Install dependencies
-pip install -r requirements.txt
+# Install the project and its dependencies
+pip install -e .
 ```
 
-### 2. Configuration
+Installing with `-e` (editable mode) allows you to modify the source code and see changes instantly without reinstalling.
+
+### 2. API Configuration
+
+Next, configure your API keys for the models you want to test:
 
 ```bash
-# Copy environment template
+# Copy the environment file template
 cp .env.example .env
 
-# Edit with your API keys
-nano .env  # or your preferred editor
+# Open the .env file and add your API keys
+nano .env  # Or use your favorite text editor
 ```
 
-Required API keys (at least one):
+You'll need at least one of the following keys:
+
+```ini
+OPENAI_API_KEY="sk-proj-..."
+ANTHROPIC_API_KEY="sk-ant-..."
+GOOGLE_API_KEY="..."
+```
+
+### 3. Running an Evaluation
+
+After installation, the framework provides two command-line scripts:
+
+- `run-evaluation`: The main script to run your test suites.
+- `view-dashboard`: Launches the Streamlit dashboard to view results.
+
 ```bash
-OPENAI_API_KEY=sk-proj-...
-ANTHROPIC_API_KEY=sk-ant-...
-GOOGLE_API_KEY=your-google-key
+# Run a test with the simulated model (no API key needed)
+run-evaluation --models simulated:default
+
+# Evaluate a real model like GPT-4o
+run-evaluation --models openai:gpt-4o
+
+# Compare multiple models side-by-side
+run-evaluation --models openai:gpt-4o anthropic:claude-sonnet-4-20250514
 ```
 
-### 3. Run Your First Evaluation
-
-```bash
-# Test without API keys (simulated mode)
-python ai_evaluation/run_evaluation.py --models simulated:default
-
-# Run with real models
-python ai_evaluation/run_evaluation.py --models openai:gpt-4o
-
-# Compare multiple models
-python ai_evaluation/run_evaluation.py --models openai:gpt-4o anthropic:claude-sonnet-4-20250514
-```
+After a run, results are saved in `ai_evaluation/results/`.
 
 ---
 
@@ -123,17 +130,17 @@ python ai_evaluation/run_evaluation.py --models openai:gpt-4o anthropic:claude-s
 ### Basic Evaluation
 
 ```bash
-# Single model with default judge
-python ai_evaluation/run_evaluation.py --models openai:gpt-4o
+# Single model with the default judge
+run-evaluation --models openai:gpt-4o
 
 # Multiple models in parallel
-python ai_evaluation/run_evaluation.py --models openai:gpt-4o ollama:llama3
+run-evaluation --models openai:gpt-4o ollama:llama3
 
-# Use specialized judge persona
-python ai_evaluation/run_evaluation.py --models openai:gpt-4o --persona critic
+# Use a specialized judge persona
+run-evaluation --models openai:gpt-4o --persona critic
 
-# Sequential execution (for debugging)
-python ai_evaluation/run_evaluation.py --models openai:gpt-4o --sequential
+# Disable parallel execution for easier debugging
+run-evaluation --models openai:gpt-4o --sequential
 ```
 
 ### Model Format
@@ -155,20 +162,11 @@ Models are specified as `provider:model_name`:
 - `helper`: Focus on clarity and helpfulness
 - `auditor`: Security-focused, checks for safety violations
 
-### Generate Analytics
-
-```bash
-# Create performance charts
-python ai_evaluation/analytics.py
-
-# View in results/benchmark_report.png
-```
-
 ### Launch Interactive Dashboard
 
 ```bash
-# Start Streamlit app
-streamlit run dashboard.py
+# Start the Streamlit dashboard
+view-dashboard
 
 # Opens at http://localhost:8501
 ```
@@ -256,7 +254,7 @@ docker run --env-file .env ai-testing
 
 # With custom command
 docker run --env-file .env ai-testing \
-  python ai_evaluation/run_evaluation.py --models openai:gpt-4o
+  python -m ai_evaluation.run_evaluation --models openai:gpt-4o
 
 # Using docker-compose
 docker-compose up

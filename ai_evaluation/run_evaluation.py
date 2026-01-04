@@ -81,21 +81,21 @@ class AIEvaluator:
                 config_path = str(alt_path)
             else:
                 raise FileNotFoundError(f"Config file not found at {config_path}")
-        
+
         with open(config_path, "r") as f:
             self.config = yaml.safe_load(f)
 
         # Resolve paths relative to config location
         config_dir = Path(config_path).parent
-        
+
         self.test_cases_dir = Path(self.config["directories"]["test_cases"])
         if not self.test_cases_dir.is_absolute():
             self.test_cases_dir = config_dir / self.test_cases_dir
-            
+
         self.results_dir = Path(self.config["directories"]["results"])
         if not self.results_dir.is_absolute():
             self.results_dir = config_dir / self.results_dir
-            
+
         self.results: List[EvaluationResult] = []
 
         # Ensure directories exist
@@ -112,12 +112,17 @@ class AIEvaluator:
             for i, item in enumerate(ds.take(count)):
                 prompt = item.get("question") or item.get("prompt") or item.get("text")
                 if prompt:
-                    path = self.test_cases_dir / f"hf_{dataset_name.replace('/', '_')}_{i}.txt"
+                    path = (
+                        self.test_cases_dir
+                        / f"hf_{dataset_name.replace('/', '_')}_{i}.txt"
+                    )
                     with open(path, "w", encoding="utf-8") as f:
                         f.write(f"Category: HuggingFace\nDifficulty: Auto\n\n{prompt}")
             logger.info(f"Successfully loaded {count} test cases from {dataset_name}")
         except ImportError:
-            logger.error("HuggingFace 'datasets' not installed. Install with: pip install datasets")
+            logger.error(
+                "HuggingFace 'datasets' not installed. Install with: pip install datasets"
+            )
         except Exception as e:
             logger.error(f"HF Load failed: {e}")
 
@@ -152,8 +157,8 @@ class AIEvaluator:
             if test_case.expectations
             else "overall quality"
         )
-        
-        prompt = f'''{persona_prompt}
+
+        prompt = f"""{persona_prompt}
 
 Rate the following response on a scale of 0.0-1.0 based on: {criteria}
 
@@ -162,7 +167,7 @@ Return your evaluation as JSON in this exact format:
 
 ORIGINAL PROMPT: {test_case.prompt}
 
-MODEL RESPONSE: {response}'''
+MODEL RESPONSE: {response}"""
 
         try:
             raw, _, _ = judge_model.call(prompt)
@@ -176,7 +181,9 @@ MODEL RESPONSE: {response}'''
                 reasoning = data.get("reasoning", "")
                 return score, reasoning
             else:
-                logger.warning(f"Judge response did not contain valid JSON: {raw[:100]}")
+                logger.warning(
+                    f"Judge response did not contain valid JSON: {raw[:100]}"
+                )
                 return 0.5, "Could not parse judge response"
         except json.JSONDecodeError as e:
             logger.error(f"Judge returned invalid JSON: {e}")
@@ -195,14 +202,16 @@ MODEL RESPONSE: {response}'''
 
             with open(file_path, "r", encoding="utf-8") as f:
                 content = f.read()
-                
+
             # Parse headers
             category_match = re.search(r"Category:\s*(.*)", content, re.IGNORECASE)
             difficulty_match = re.search(r"Difficulty:\s*(.*)", content, re.IGNORECASE)
-            
+
             category = category_match.group(1).strip() if category_match else "General"
-            difficulty = difficulty_match.group(1).strip() if difficulty_match else "Medium"
-            
+            difficulty = (
+                difficulty_match.group(1).strip() if difficulty_match else "Medium"
+            )
+
             return TestCase(
                 name=file_path.stem,
                 category=category,
@@ -272,15 +281,19 @@ MODEL RESPONSE: {response}'''
         files = list(self.test_cases_dir.glob("*.txt")) + list(
             self.test_cases_dir.glob("*.yaml")
         )
-        
+
         if not files:
             logger.warning(f"No test cases found in {self.test_cases_dir}")
-            console.print("[yellow]⚠ No test cases found. Add .txt or .yaml files to test_cases directory.[/]")
+            console.print(
+                "[yellow]⚠ No test cases found. Add .txt or .yaml files to test_cases directory.[/]"
+            )
             return
-        
+
         tasks = [(file, model_id, persona) for file in files for model_id in model_ids]
-        
-        console.print(f"[cyan]Found {len(files)} test cases, running with {len(model_ids)} model(s)[/]")
+
+        console.print(
+            f"[cyan]Found {len(files)} test cases, running with {len(model_ids)} model(s)[/]"
+        )
 
         with Progress(
             SpinnerColumn(),
@@ -309,30 +322,30 @@ MODEL RESPONSE: {response}'''
         if not self.results:
             console.print("[yellow]No results to display[/]")
             return
-        
+
         table = Table(title="Evaluation Summary")
         table.add_column("Test Case", style="cyan")
         table.add_column("Model", style="magenta")
         table.add_column("Score", style="green")
         table.add_column("Duration", style="yellow")
         table.add_column("Cost", style="red")
-        
+
         for result in self.results:
             table.add_row(
                 result.test_case_name[:30],
                 result.model_type[:20],
                 f"{result.judge_score:.2f}",
                 f"{result.duration_seconds:.2f}s",
-                f"${result.estimated_cost:.4f}"
+                f"${result.estimated_cost:.4f}",
             )
-        
+
         console.print(table)
-        
+
         # Summary stats
         avg_score = sum(r.judge_score for r in self.results) / len(self.results)
         total_cost = sum(r.estimated_cost for r in self.results)
         pii_count = sum(1 for r in self.results if r.pii_found)
-        
+
         console.print(f"\n[bold]Average Score:[/] {avg_score:.3f}")
         console.print(f"[bold]Total Cost:[/] ${total_cost:.4f}")
         if pii_count > 0:
@@ -343,35 +356,35 @@ MODEL RESPONSE: {response}'''
         if not self.results:
             logger.warning("No results to export")
             return
-        
+
         timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
-        
+
         # Export latest results for dashboard
         latest_path = self.results_dir / "latest_results.json"
         with open(latest_path, "w", encoding="utf-8") as f:
             json.dump([r.model_dump() for r in self.results], f, indent=2)
-        
+
         # Export a unique file for this run
         run_path = self.results_dir / f"run_{timestamp}.json"
         with open(run_path, "w", encoding="utf-8") as f:
             json.dump([r.model_dump() for r in self.results], f, indent=2)
-        
+
         logger.info(f"Results exported to {run_path}")
         console.print(f"[green]✓[/] Results saved to: {run_path.name}")
 
 
-if __name__ == "__main__":
+def main():
     import argparse
 
     parser = argparse.ArgumentParser(
-        description="AI Evaluation Framework V2.0",
+        description="AI Evaluation Framework V2.0.2",
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog="""
 Examples:
-  python run_evaluation.py --models simulated:default
-  python run_evaluation.py --models openai:gpt-4o anthropic:claude-sonnet-4-20250514
-  python run_evaluation.py --models ollama:llama3 --persona critic
-        """
+  run-evaluation --models simulated:default
+  run-evaluation --models openai:gpt-4o anthropic:claude-sonnet-4-20250514
+  run-evaluation --models ollama:llama3 --persona critic
+        """,
     )
     parser.add_argument(
         "--models",
@@ -402,27 +415,30 @@ Examples:
         evaluator = AIEvaluator(config_path=args.config)
         console.print(
             Panel.fit(
-                f"🤖 AI Benchmark V2.0\nPersona: {args.persona}\nModels: {', '.join(args.models)}",
-                style="bold green"
+                f"🤖 AI Benchmark V2.1.0\nPersona: {args.persona}\nModels: {', '.join(args.models)}",
+                style="bold green",
             )
         )
-        
+
         evaluator.run_suite(
-            args.models,
-            persona=args.persona,
-            parallel=not args.sequential
+            args.models, persona=args.persona, parallel=not args.sequential
         )
-        
+
         evaluator.print_summary()
         evaluator.export()
-        
+
         console.print("\n[bold cyan]✨ Evaluation complete![/]")
-        console.print("[dim]Run 'python ai_evaluation/analytics.py' for charts[/]")
-        console.print("[dim]Run 'streamlit run dashboard.py' for interactive dashboard[/]")
-        
+        console.print("[dim]Run 'view-dashboard' for interactive dashboard[/]")
+
     except FileNotFoundError as e:
         console.print(f"[bold red]Error:[/] {e}")
-        console.print("[yellow]Make sure config.yaml exists and test cases are present[/]")
+        console.print(
+            "[yellow]Make sure config.yaml exists and test cases are present[/]"
+        )
     except Exception as e:
         console.print(f"[bold red]Fatal error:[/] {e}")
         logger.exception("Fatal error during evaluation")
+
+
+if __name__ == "__main__":
+    main()
