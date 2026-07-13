@@ -107,6 +107,11 @@ run-evaluation --models openai:gpt-4o
 # Compare multiple models side-by-side
 run-evaluation --models openai:gpt-4o anthropic:claude-sonnet-3.5
 
+# Launch the interactive Streamlit dashboard
+view-dashboard
+
+# Alternatively, run the dashboard module directly
+python -m ai_evaluation.dashboard
 ```
 
 ---
