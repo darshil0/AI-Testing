@@ -419,7 +419,7 @@ Examples:
         evaluator = AIEvaluator(config_path=args.config)
         console.print(
             Panel.fit(
-                f"🤖 AI Benchmark V2.1.0\nPersona: {args.persona}\nModels: {', '.join(args.models)}",
+                f"🤖 AI Benchmark V2.1.2\nPersona: {args.persona}\nModels: {', '.join(args.models)}",
                 style="bold green",
             )
         )
