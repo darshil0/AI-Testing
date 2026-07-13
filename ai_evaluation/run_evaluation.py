@@ -200,7 +200,9 @@ MODEL RESPONSE: {response}"""
             if file_path.suffix == ".yaml":
                 with open(file_path, "r", encoding="utf-8") as f:
                     data = yaml.safe_load(f) or {}
-                    return TestCase(name=file_path.stem, **data)
+                    if "name" not in data:
+                        data["name"] = file_path.stem
+                    return TestCase(**data)
 
             with open(file_path, "r", encoding="utf-8") as f:
                 content = f.read()
