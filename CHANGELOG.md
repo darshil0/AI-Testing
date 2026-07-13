@@ -5,6 +5,21 @@ All notable changes to the AI-Testing project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.1.1] - 2026-01-05
+
+### Added
+- **Dashboard Entry Point**: Introduced a standard `main()` function in `ai_evaluation/dashboard.py` to support CLI execution and packaging entry points.
+
+### Changed
+- **Packaging Alignment**: Standardized `pyproject.toml` configuration to route `view-dashboard` script command to the correct `main()` entry point of the dashboard.
+- **Improved Code Quality**: Run `black` code formatter on modified and core package modules.
+
+### Fixed
+- **Testing Imports**: Cleaned up package and test `__init__.py` namespaces to avoid test runner compilation errors and namespace pollution.
+- **Score Clamping Test Mocking**: Fixed a mocking error in unit tests by targeting `get_model` within the namespace of `ai_evaluation.run_evaluation` where it is actually looked up.
+
+---
+
 ## [2.1.0] - 2026-01-04
 
 ### Added

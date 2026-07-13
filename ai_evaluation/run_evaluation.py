@@ -69,9 +69,7 @@ class EvaluationResult(BaseModel):
     judge_reasoning: str = ""
     pii_found: bool = False
     pii_types: List[str] = []
-    timestamp: str = Field(
-        default_factory=lambda: datetime.datetime.now().isoformat()
-    )
+    timestamp: str = Field(default_factory=lambda: datetime.datetime.now().isoformat())
 
 
 class AIEvaluator:
@@ -104,7 +102,9 @@ class AIEvaluator:
         self.results_dir.mkdir(parents=True, exist_ok=True)
         self.test_cases_dir.mkdir(parents=True, exist_ok=True)
 
-    def load_from_hf(self, dataset_name: str, split: str = "test", count: int = 5) -> None:
+    def load_from_hf(
+        self, dataset_name: str, split: str = "test", count: int = 5
+    ) -> None:
         """Load test cases from HuggingFace datasets."""
         try:
             from datasets import load_dataset

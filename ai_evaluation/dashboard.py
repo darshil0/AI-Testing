@@ -22,15 +22,15 @@ def show_dashboard():
     run_files.sort(reverse=True)
 
     if not run_files:
-        st.warning(f"No evaluation runs found in {results_dir}. Run an evaluation first!")
+        st.warning(
+            f"No evaluation runs found in {results_dir}. Run an evaluation first!"
+        )
         st.stop()
 
     # Sidebar for run selection
     st.sidebar.header("Settings")
     selected_run = st.sidebar.selectbox(
-        "Select Evaluation Run", 
-        run_files, 
-        format_func=lambda x: Path(x).name
+        "Select Evaluation Run", run_files, format_func=lambda x: Path(x).name
     )
 
     with open(selected_run, "r") as f:
@@ -60,16 +60,22 @@ def show_dashboard():
         st.subheader("Run Overview")
         # Display styled dataframe
         display_cols = [
-            "test_case_name", "model_type", "category", 
-            "judge_score", "duration_seconds", "estimated_cost"
+            "test_case_name",
+            "model_type",
+            "category",
+            "judge_score",
+            "duration_seconds",
+            "estimated_cost",
         ]
         st.dataframe(
-            df[display_cols].style.background_gradient(subset=["judge_score"], cmap="RdYlGn"),
-            use_container_width=True
+            df[display_cols].style.background_gradient(
+                subset=["judge_score"], cmap="RdYlGn"
+            ),
+            use_container_width=True,
         )
 
         st.divider()
-        
+
         st.subheader("Individual Response View")
         case = st.selectbox(
             "Select a test case to inspect", df["test_case_name"].unique()
@@ -88,7 +94,9 @@ def show_dashboard():
     with tab2:
         st.subheader("Performance by Model")
         chart_type = st.radio(
-            "Metric to Compare", ["Avg Score", "Avg Latency", "Total Cost"], horizontal=True
+            "Metric to Compare",
+            ["Avg Score", "Avg Latency", "Total Cost"],
+            horizontal=True,
         )
 
         # Prepare Aggregated Data
@@ -98,17 +106,13 @@ def show_dashboard():
             chart_data = df.groupby("model_type")["duration_seconds"].mean()
         else:
             chart_data = df.groupby("model_type")["estimated_cost"].sum()
-        
+
         st.bar_chart(chart_data)
 
     with tab3:
         if pii_count > 0:
             st.write("The following cases triggered PII warnings:")
-            st.table(
-                df[df["pii_found"] == True][
-                    ["test_case_name", "model_type", "pii_types"]
-                ]
-            )
+            st.table(df[df["pii_found"]][["test_case_name", "model_type", "pii_types"]])
         else:
             st.success("No PII leaks detected in this run.")
 
@@ -116,11 +120,18 @@ def show_dashboard():
     st.sidebar.info("V2.1.0 - Production Ready")
 
 
-if __name__ == "__main__":
-    # Check if the script is being run directly via 'python dashboard.py'
-    # If so, it will launch the Streamlit process properly.
+def main():
+    """
+    Entry point for launching the Streamlit dashboard.
+    If run within a Streamlit context, it calls show_dashboard().
+    Otherwise, it invokes Streamlit subprocess to run itself.
+    """
     if st.runtime.exists():
         show_dashboard()
     else:
         script_path = Path(__file__).resolve()
         subprocess.run([sys.executable, "-m", "streamlit", "run", str(script_path)])
+
+
+if __name__ == "__main__":
+    main()
