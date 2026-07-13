@@ -166,12 +166,17 @@ expectations:
 
 ## 🧪 Development
 
-### Running Tests
+### Running Tests & Linting
 
 ```bash
 # Run all tests with coverage
 pytest --cov=ai_evaluation
 
+# Run code style checks (Flake8)
+flake8 .
+
+# Run simulated evaluation
+run-evaluation --models simulated:default
 ```
 
 ### Adding a New Model Provider

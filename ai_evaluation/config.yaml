@@ -2,8 +2,8 @@
 
 # --- Directories ---
 directories:
-  test_cases: "ai_evaluation/test_cases"
-  results: "ai_evaluation/results"
+  test_cases: "test_cases"
+  results: "results"
 
 # --- Concurrency ---
 max_workers: 5
