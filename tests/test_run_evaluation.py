@@ -19,9 +19,7 @@ def mock_config(tmp_path):
             "results": str(results_dir),
         },
         "max_workers": 1,
-        "pii_patterns": {
-            "email": r"[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}"
-        },
+        "pii_patterns": {"email": r"[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}"},
         "judge": {"model": "simulated:default"},
         "judge_personas": {
             "default": "You are a default judge.",
