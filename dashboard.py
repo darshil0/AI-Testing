@@ -116,11 +116,18 @@ def show_dashboard():
     st.sidebar.info("V2.1.0 - Production Ready")
 
 
-if __name__ == "__main__":
-    # Check if the script is being run directly via 'python dashboard.py'
-    # If so, it will launch the Streamlit process properly.
+def main():
+    """
+    Entry point for launching the Streamlit dashboard.
+    If run within a Streamlit context, it calls show_dashboard().
+    Otherwise, it invokes Streamlit subprocess to run itself.
+    """
     if st.runtime.exists():
         show_dashboard()
     else:
         script_path = Path(__file__).resolve()
         subprocess.run([sys.executable, "-m", "streamlit", "run", str(script_path)])
+
+
+if __name__ == "__main__":
+    main()
