@@ -4,17 +4,20 @@ import matplotlib.pyplot as plt
 import pandas as pd
 import seaborn as sns
 
+
 def generate_analytics(results_path=None) -> None:
     # Resolve paths relative to the project root
     base_dir = Path(__file__).parent.parent if "__file__" in locals() else Path.cwd()
-    
+
     if results_path is None:
         results_file = base_dir / "ai_evaluation" / "results" / "latest_results.json"
     else:
         results_file = Path(results_path)
 
     if not results_file.exists():
-        print(f"Error: {results_file} not found. Ensure you have run an evaluation first.")
+        print(
+            f"Error: {results_file} not found. Ensure you have run an evaluation first."
+        )
         return
 
     with results_file.open("r", encoding="utf-8") as f:
@@ -36,7 +39,7 @@ def generate_analytics(results_path=None) -> None:
         "category",
         "estimated_cost",
     }
-    
+
     missing = required_columns - set(df.columns)
     if missing:
         print(f"Missing required columns in results: {', '.join(sorted(missing))}")
@@ -45,7 +48,7 @@ def generate_analytics(results_path=None) -> None:
     # Visual Setup
     sns.set_theme(style="whitegrid")
     fig, axes = plt.subplots(2, 2, figsize=(15, 12))
-    
+
     # Define a consistent color mapping for models to keep colors the same across plots
     unique_models = df["model_type"].unique()
     palette = sns.color_palette("viridis", n_colors=len(unique_models))
@@ -60,9 +63,9 @@ def generate_analytics(results_path=None) -> None:
         ax=axes[0, 0],
         hue="model_type",  # Added hue to avoid future warnings
         palette=model_color_map,
-        legend=False
+        legend=False,
     )
-    axes[0, 0].set_title("Average Judge Score by Model", fontweight='bold')
+    axes[0, 0].set_title("Average Judge Score by Model", fontweight="bold")
     axes[0, 0].set_ylim(0, 1.1)
     axes[0, 0].set_ylabel("Average Score (0.0 - 1.0)")
 
@@ -75,20 +78,14 @@ def generate_analytics(results_path=None) -> None:
         data=df,
         ax=axes[0, 1],
         s=150,
-        palette=model_color_map
+        palette=model_color_map,
     )
-    axes[0, 1].set_title("Latency vs. Judge Score", fontweight='bold')
+    axes[0, 1].set_title("Latency vs. Judge Score", fontweight="bold")
     axes[0, 1].set_xlabel("Duration (seconds)")
 
     # 3. Category performance
-    sns.boxplot(
-        x="category",
-        y="judge_score",
-        data=df,
-        ax=axes[1, 0],
-        palette="Set2"
-    )
-    axes[1, 0].set_title("Performance Distribution by Category", fontweight='bold')
+    sns.boxplot(x="category", y="judge_score", data=df, ax=axes[1, 0], palette="Set2")
+    axes[1, 0].set_title("Performance Distribution by Category", fontweight="bold")
     axes[1, 0].tick_params(axis="x", rotation=30)
 
     # 4. Total cost by model
@@ -100,18 +97,19 @@ def generate_analytics(results_path=None) -> None:
         ax=axes[1, 1],
         hue="model_type",
         palette=model_color_map,
-        legend=False
+        legend=False,
     )
-    axes[1, 1].set_title("Total Cumulative Cost ($)", fontweight='bold')
+    axes[1, 1].set_title("Total Cumulative Cost ($)", fontweight="bold")
     axes[1, 1].set_ylabel("USD ($)")
 
     plt.tight_layout()
-    
+
     # Save Output
     output_path = results_file.parent / "benchmark_report.png"
-    plt.savefig(output_path, dpi=300) # Higher DPI for "publication-ready" charts
+    plt.savefig(output_path, dpi=300)  # Higher DPI for "publication-ready" charts
     plt.close(fig)
     print(f"✅ Analytics report saved to: {output_path}")
+
 
 if __name__ == "__main__":
     generate_analytics()

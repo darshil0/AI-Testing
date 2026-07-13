@@ -1,7 +1,7 @@
 """
 AI-Testing: A professional evaluation framework for AI models.
 
-This package provides tools for benchmarking AI models, running 
+This package provides tools for benchmarking AI models, running
 automated evaluations, and visualizing results through a dashboard.
 """
 
