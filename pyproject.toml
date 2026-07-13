@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "ai-evaluation-framework"
-version = "2.1.0"
+version = "2.1.2"
 description = "A professional, enterprise-ready evaluation framework for benchmarking AI models."
 authors = [{ name = "Darshil", email = "darshil@example.com" }]
 license = { text = "MIT" }

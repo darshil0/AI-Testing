@@ -19,13 +19,11 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 
 # Copy only packaging files first to leverage Docker layer caching
 COPY pyproject.toml .
-# If you still use requirements.txt, uncomment the next line:
-# COPY requirements.txt . 
 
 # Install the package and its dependencies
-# We install '.' to trigger the pyproject.toml installation
+# We install '-e .' to trigger editable installation so console scripts are available
 RUN pip install --upgrade pip && \
-    pip install .
+    pip install -e .
 
 # Copy the rest of the project source
 COPY . .

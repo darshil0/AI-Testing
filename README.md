@@ -179,6 +179,29 @@ flake8 .
 run-evaluation --models simulated:default
 ```
 
+### Dependency Management
+
+The project uses `pip-tools` to manage and pin dependencies for reproducible runs.
+
+* **Core & Dev Dependencies**: Defined in `pyproject.toml`.
+* **Lock File**: Compiled into `requirements.lock`.
+
+To compile or update the lock file after modifying `pyproject.toml`, run:
+
+```bash
+# Install pip-tools
+pip install pip-tools
+
+# Regenerate requirements.lock
+pip-compile pyproject.toml --extra dev -o requirements.lock --resolver=backtracking
+```
+
+To install packages from the lock file:
+
+```bash
+pip install -r requirements.lock
+```
+
 ### Adding a New Model Provider
 
 1. Define a new class in `ai_evaluation/models.py` inheriting from `BaseModel`.
@@ -189,12 +212,12 @@ run-evaluation --models simulated:default
 
 ## 📄 License
 
-This project is licensed under the MIT License - see [LICENSE](https://www.google.com/search?q=LICENSE) for details.
+This project is licensed under the MIT License - see [LICENSE](LICENSE) for details.
 
 ---
 
 **Made with ❤️ by Darshil**
 
-[⬆ Back to Top](https://www.google.com/search?q=%23ai-testing-)
+[⬆ Back to Top](#ai-testing-)
 
 ---
