@@ -33,7 +33,7 @@ def show_dashboard():
         "Select Evaluation Run", run_files, format_func=lambda x: Path(x).name
     )
 
-    with open(selected_run, "r") as f:
+    with open(selected_run, "r", encoding="utf-8") as f:
         data = json.load(f)
         df = pd.DataFrame(data)
 
@@ -117,7 +117,7 @@ def show_dashboard():
             st.success("No PII leaks detected in this run.")
 
     st.sidebar.markdown("---")
-    st.sidebar.info("V2.1.2 - Production Ready")
+    st.sidebar.info("V2.1.0 - Production Ready")
 
 
 def main():
@@ -130,7 +130,7 @@ def main():
         show_dashboard()
     else:
         script_path = Path(__file__).resolve()
-        subprocess.run([sys.executable, "-m", "streamlit", "run", str(script_path)])
+        subprocess.run([sys.executable, "-m", "streamlit", "run", str(script_path)], check=True)
 
 
 if __name__ == "__main__":

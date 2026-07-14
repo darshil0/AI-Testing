@@ -76,8 +76,8 @@ class OpenAIModel(BaseModel):
         resp = self.client.chat.completions.create(
             model=self.model_name,
             messages=[{"role": "user", "content": prompt}],
-            max_tokens=self.config.get("max_tokens", 2000),
-            temperature=self.config.get("temperature", 0.7),
+            max_tokens=self.config.get("default_model_params", {}).get("max_tokens", self.config.get("max_tokens", 2000)),
+            temperature=self.config.get("default_model_params", {}).get("temperature", self.config.get("temperature", 0.7)),
         )
         content = resp.choices[0].message.content or ""
         input_tokens = getattr(resp.usage, "prompt_tokens", 0)
@@ -100,7 +100,7 @@ class AnthropicModel(BaseModel):
     def call(self, prompt: str) -> Tuple[str, int, int]:
         resp = self.client.messages.create(
             model=self.model_name,
-            max_tokens=self.config.get("max_tokens", 2000),
+            max_tokens=self.config.get("default_model_params", {}).get("max_tokens", self.config.get("max_tokens", 2000)),
             messages=[{"role": "user", "content": prompt}],
         )
         text = resp.content[0].text if resp.content else ""
@@ -120,12 +120,16 @@ class GeminiModel(BaseModel):
         genai.configure(api_key=api_key)
         self.client = genai.GenerativeModel(self.model_name)
 
+    @retry(
+        stop=stop_after_attempt(3),
+        wait=wait_exponential(multiplier=1, min=4, max=10),
+    )
     def call(self, prompt: str) -> Tuple[str, int, int]:
         resp = self.client.generate_content(
             prompt,
             generation_config={
-                "max_output_tokens": self.config.get("max_tokens", 2000),
-                "temperature": self.config.get("temperature", 0.7),
+                "max_output_tokens": self.config.get("default_model_params", {}).get("max_tokens", self.config.get("max_tokens", 2000)),
+                "temperature": self.config.get("default_model_params", {}).get("temperature", self.config.get("temperature", 0.7)),
             },
         )
         text = getattr(resp, "text", "") or ""
@@ -151,7 +155,7 @@ class OllamaModel(BaseModel):
             model=self.model_name,
             messages=[{"role": "user", "content": prompt}],
         )
-        content = resp["message"]["content"]
+        content = resp.message.content
         # Heuristic for local models
         return content, len(prompt) // 4, len(content) // 4
 

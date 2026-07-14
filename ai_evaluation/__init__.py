@@ -5,7 +5,7 @@ This package provides tools for benchmarking AI models, running
 automated evaluations, and visualizing results through a dashboard.
 """
 
-__version__ = "2.1.2"
+__version__ = "2.1.0"
 
 from .run_evaluation import main as run_evaluation
 from .dashboard import main as run_dashboard

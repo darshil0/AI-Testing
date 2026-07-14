@@ -38,7 +38,9 @@ logging.basicConfig(
     datefmt="[%X]",
     handlers=[
         RichHandler(rich_tracebacks=True),
-        logging.FileHandler("evaluation.log"),
+        logging.FileHandler(
+            os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "evaluation.log")
+        ),
     ],
 )
 logger = logging.getLogger("rich")
@@ -68,7 +70,7 @@ class EvaluationResult(BaseModel):
     judge_score: float = 0.0
     judge_reasoning: str = ""
     pii_found: bool = False
-    pii_types: List[str] = []
+    pii_types: List[str] = Field(default_factory=list)
     timestamp: str = Field(default_factory=lambda: datetime.datetime.now().isoformat())
 
 
@@ -111,6 +113,7 @@ class AIEvaluator:
 
             ds = load_dataset(dataset_name, split=split, streaming=True)
             logger.info(f"Loading {count} cases from HF: {dataset_name}")
+            written_count = 0
             for i, item in enumerate(ds.take(count)):
                 prompt = item.get("question") or item.get("prompt") or item.get("text")
                 if prompt:
@@ -120,7 +123,8 @@ class AIEvaluator:
                     )
                     with open(path, "w", encoding="utf-8") as f:
                         f.write(f"Category: HuggingFace\nDifficulty: Auto\n\n{prompt}")
-            logger.info(f"Successfully loaded {count} test cases from {dataset_name}")
+                    written_count += 1
+            logger.info(f"Successfully loaded {written_count} test cases from {dataset_name}")
         except ImportError:
             logger.error(
                 "HuggingFace 'datasets' not installed. Install with: pip install datasets"
@@ -174,7 +178,7 @@ MODEL RESPONSE: {response}"""
         try:
             raw, _, _ = judge_model.call(prompt)
             # Try to extract JSON from the response
-            match = re.search(r'\{[^}]*"score"[^}]*\}', raw, re.DOTALL)
+            match = re.search(r'\{.*?"score".*?\}', raw, re.DOTALL)
             if match:
                 data = json.loads(match.group())
                 score = float(data.get("score", 0.0))
@@ -216,11 +220,16 @@ MODEL RESPONSE: {response}"""
                 difficulty_match.group(1).strip() if difficulty_match else "Medium"
             )
 
+            # Strip header lines (Category/Difficulty) so only the body is used as the prompt
+            prompt_body = re.sub(
+                r"^(Category|Difficulty):\s*.*\n?", "", content, flags=re.IGNORECASE | re.MULTILINE
+            ).strip()
+
             return TestCase(
                 name=file_path.stem,
                 category=category,
                 difficulty=difficulty,
-                prompt=content.strip(),
+                prompt=prompt_body,
             )
         except Exception as e:
             logger.error(f"Error parsing test case {file_path}: {e}")
@@ -301,7 +310,7 @@ MODEL RESPONSE: {response}"""
 
         with Progress(
             SpinnerColumn(),
-            TextColumn("{task.description}"),
+            TextColumn("[progress.description]{task.description}"),
             BarColumn(),
             TaskProgressColumn(),
             console=console,
@@ -381,7 +390,7 @@ def main() -> None:
     import argparse
 
     parser = argparse.ArgumentParser(
-        description="AI Evaluation Framework V2.0.2",
+        description="AI Evaluation Framework V2.1.0",
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog="""
 Examples:
@@ -419,7 +428,7 @@ Examples:
         evaluator = AIEvaluator(config_path=args.config)
         console.print(
             Panel.fit(
-                f"🤖 AI Benchmark V2.1.2\nPersona: {args.persona}\nModels: {', '.join(args.models)}",
+                f"🤖 AI Benchmark V2.1.0\nPersona: {args.persona}\nModels: {', '.join(args.models)}",
                 style="bold green",
             )
         )

@@ -7,7 +7,7 @@ import seaborn as sns
 
 def generate_analytics(results_path=None) -> None:
     # Resolve paths relative to the project root
-    base_dir = Path(__file__).parent.parent if "__file__" in locals() else Path.cwd()
+    base_dir = Path(__file__).parent.parent
 
     if results_path is None:
         results_file = base_dir / "ai_evaluation" / "results" / "latest_results.json"
