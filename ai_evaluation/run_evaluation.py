@@ -291,8 +291,10 @@ MODEL RESPONSE: {response}"""
         self, model_ids: List[str], persona: str = "default", parallel: bool = True
     ) -> None:
         """Run evaluation suite across all test cases and models."""
-        files = list(self.test_cases_dir.glob("*.txt")) + list(
-            self.test_cases_dir.glob("*.yaml")
+        files = (
+            list(self.test_cases_dir.glob("*.txt"))
+            + list(self.test_cases_dir.glob("*.yaml"))
+            + list(self.test_cases_dir.glob("*.yml"))
         )
 
         if not files:
