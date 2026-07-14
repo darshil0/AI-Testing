@@ -1,6 +1,7 @@
 import pytest
 from pathlib import Path
 from unittest.mock import MagicMock, patch
+import sys
 import yaml
 from ai_evaluation.run_evaluation import AIEvaluator, EvaluationResult, TestCase
 
@@ -108,6 +109,23 @@ def test_parse_test_case_yaml(evaluator):
     assert len(test_case.expectations) == 1
 
 
+def test_parse_test_case_yml(evaluator):
+    evaluator_instance, test_cases_dir, _ = evaluator
+    test_file = test_cases_dir / "test3.yml"
+    yaml_content = {
+        "category": "Writing",
+        "difficulty": "Easy",
+        "prompt": "Write a poem",
+        "expectations": ["Rhyming"],
+    }
+    with open(test_file, "w") as f:
+        yaml.dump(yaml_content, f)
+
+    test_case = evaluator_instance._parse_test_case(test_file)
+    assert test_case.category == "Writing"
+    assert len(test_case.expectations) == 1
+
+
 # --- Logic & Security Tests ---
 
 
@@ -125,7 +143,9 @@ def test_score_clamping(evaluator, mocker):
     test_case = TestCase(name="clamp", category="G", difficulty="E", prompt="P")
 
     # Target the get_model function where it is looked up in run_evaluation
-    with patch("ai_evaluation.run_evaluation.get_model") as mock_get_model:
+    # Avoid AttributeError on runtimes where ai_evaluation.__init__.py overrides the module reference
+    target_module = sys.modules["ai_evaluation.run_evaluation"]
+    with patch.object(target_module, "get_model") as mock_get_model:
         mock_model = MagicMock()
         mock_get_model.return_value = mock_model
 

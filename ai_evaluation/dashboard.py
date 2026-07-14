@@ -7,6 +7,9 @@ import subprocess
 import sys
 
 
+import yaml
+
+
 def show_dashboard():
     st.set_page_config(page_title="AI Benchmark Dashboard", layout="wide")
 
@@ -15,7 +18,21 @@ def show_dashboard():
 
     # Get the directory of the currently running script
     script_dir = Path(__file__).parent
-    results_dir = script_dir / "results"
+
+    # Read config.yaml to get dynamic results directory
+    config_path = script_dir / "config.yaml"
+    results_dir_name = "results"
+    if config_path.exists():
+        try:
+            with open(config_path, "r", encoding="utf-8") as f:
+                config = yaml.safe_load(f)
+                results_dir_name = config.get("directories", {}).get(
+                    "results", "results"
+                )
+        except Exception as e:
+            st.sidebar.warning(f"Could not load config: {e}")
+
+    results_dir = script_dir / results_dir_name
 
     # Load available runs
     run_files = glob.glob(str(results_dir / "run_*.json"))
@@ -33,9 +50,20 @@ def show_dashboard():
         "Select Evaluation Run", run_files, format_func=lambda x: Path(x).name
     )
 
-    with open(selected_run, "r", encoding="utf-8") as f:
-        data = json.load(f)
-        df = pd.DataFrame(data)
+    try:
+        with open(selected_run, "r", encoding="utf-8") as f:
+            data = json.load(f)
+            df = pd.DataFrame(data)
+    except json.JSONDecodeError as e:
+        st.error(f"Failed to load run file due to invalid JSON: {e}")
+        st.stop()
+    except Exception as e:
+        st.error(f"An unexpected error occurred while loading the run: {e}")
+        st.stop()
+
+    if df.empty:
+        st.warning("Selected evaluation run contains no data.")
+        st.stop()
 
     # Metrics Layout
     m1, m2, m3, m4 = st.columns(4)
@@ -80,7 +108,16 @@ def show_dashboard():
         case = st.selectbox(
             "Select a test case to inspect", df["test_case_name"].unique()
         )
-        case_data = df[df["test_case_name"] == case].iloc[0]
+
+        # Filter dataframe by selected test case
+        case_df = df[df["test_case_name"] == case]
+
+        # Select model secondary dropdown
+        selected_model = st.selectbox(
+            "Select model to view response", case_df["model_type"].unique()
+        )
+
+        case_data = case_df[case_df["model_type"] == selected_model].iloc[0]
 
         c1, c2 = st.columns(2)
         with c1:
@@ -130,7 +167,9 @@ def main():
         show_dashboard()
     else:
         script_path = Path(__file__).resolve()
-        subprocess.run([sys.executable, "-m", "streamlit", "run", str(script_path)], check=True)
+        subprocess.run(
+            [sys.executable, "-m", "streamlit", "run", str(script_path)], check=True
+        )
 
 
 if __name__ == "__main__":

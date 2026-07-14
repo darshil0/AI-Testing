@@ -39,7 +39,9 @@ logging.basicConfig(
     handlers=[
         RichHandler(rich_tracebacks=True),
         logging.FileHandler(
-            os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "evaluation.log")
+            os.path.join(
+                os.path.dirname(os.path.abspath(__file__)), "..", "evaluation.log"
+            )
         ),
     ],
 )
@@ -124,7 +126,9 @@ class AIEvaluator:
                     with open(path, "w", encoding="utf-8") as f:
                         f.write(f"Category: HuggingFace\nDifficulty: Auto\n\n{prompt}")
                     written_count += 1
-            logger.info(f"Successfully loaded {written_count} test cases from {dataset_name}")
+            logger.info(
+                f"Successfully loaded {written_count} test cases from {dataset_name}"
+            )
         except ImportError:
             logger.error(
                 "HuggingFace 'datasets' not installed. Install with: pip install datasets"
@@ -201,7 +205,7 @@ MODEL RESPONSE: {response}"""
     def _parse_test_case(self, file_path: Path) -> TestCase:
         """Parse a test case from a file."""
         try:
-            if file_path.suffix == ".yaml":
+            if file_path.suffix in (".yaml", ".yml"):
                 with open(file_path, "r", encoding="utf-8") as f:
                     data = yaml.safe_load(f) or {}
                     if "name" not in data:
@@ -222,7 +226,10 @@ MODEL RESPONSE: {response}"""
 
             # Strip header lines (Category/Difficulty) so only the body is used as the prompt
             prompt_body = re.sub(
-                r"^(Category|Difficulty):\s*.*\n?", "", content, flags=re.IGNORECASE | re.MULTILINE
+                r"^(Category|Difficulty):\s*.*\n?",
+                "",
+                content,
+                flags=re.IGNORECASE | re.MULTILINE,
             ).strip()
 
             return TestCase(
