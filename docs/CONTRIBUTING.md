@@ -42,9 +42,8 @@ We use an editable installation to ensure changes are reflected immediately.
 python3 -m venv venv
 source venv/bin/activate  # Windows: venv\Scripts\activate
 
-# Install the project in editable mode with dev dependencies
-pip install -e .
-pip install pytest pytest-cov black flake8 mypy
+# Install the project and all development dependencies in editable mode
+pip install -e ".[dev]"
 
 ```
 

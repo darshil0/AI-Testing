@@ -1,8 +1,8 @@
 # --- Core AI & LLM Dependencies ---
-openai>=1.2.0
-anthropic>=0.21.0
-google-generativeai>=0.4.0
-ollama>=0.1.0
+openai>=2.45.0
+anthropic>=0.116.0
+google-generativeai>=0.8.0
+ollama>=0.6.0
 
 # --- Data Handling & Validation ---
 pydantic>=2.0.0
@@ -18,9 +18,9 @@ tenacity>=8.2.0
 python-dotenv>=1.0.0
 
 # --- UI, Visualization & Formatting ---
-streamlit>=1.30.0
-rich>=13.0.0
-matplotlib>=3.8.0
+streamlit>=1.59.0
+rich>=15.0.0
+matplotlib>=3.11.0
 seaborn>=0.13.0
 
 # --- Testing & Code Quality ---
@@ -31,5 +31,5 @@ black>=23.0.0
 isort>=5.12.0
 
 # --- Utilities ---
-python-dateutil>=2.8.2
+python-dateutil>=2.9.0
 pyyaml>=6.0.0
