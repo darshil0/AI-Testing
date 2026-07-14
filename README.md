@@ -1,6 +1,6 @@
 # AI-Testing 🤖
 
-> **Version 2.1.3** — A professional, enterprise-ready evaluation framework for benchmarking AI models across various domains. Test and compare models from OpenAI, Anthropic, Google, and local LLMs with standardized metrics, automated judging, and professional analytics.
+> **Version 2.1.4** — A professional, enterprise-ready evaluation framework for benchmarking AI models across various domains. Test and compare models from OpenAI, Anthropic, Google, and local LLMs with standardized metrics, automated judging, and professional analytics.
 
 ---
 
@@ -144,7 +144,7 @@ Models are specified as `provider:model_name`:
 
 ### YAML Format (Recommended)
 
-Create a file in `ai_evaluation/test_cases/code_opt.yaml`:
+Create a `.yaml` or `.yml` file in `ai_evaluation/test_cases/`:
 
 ```yaml
 name: code_optimization

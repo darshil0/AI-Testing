@@ -5,6 +5,17 @@ All notable changes to the AI-Testing project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.1.4] - 2026-07-14
+
+### Fixed
+
+- **Dashboard Model Selection**: Fixed a bug in the Individual Response View where only the first model's response was shown. Added a dropdown to explicitly select which model's output to inspect.
+- **Hardcoded Results Paths**: `analytics.py` and `dashboard.py` previously hardcoded the `results` directory. They now dynamically read `directories.results` from `config.yaml`.
+- **Dashboard JSON Crashes**: Added a `try/except` block for `json.JSONDecodeError` to prevent the Streamlit dashboard from crashing entirely when a corrupted JSON run file is selected.
+- **Empty DataFrame KeyErrors**: Added a check for `df.empty` in the dashboard to immediately halt execution and display a warning instead of raising a fatal `KeyError` when loading empty evaluation runs.
+- **`AnthropicModel` Temperature Config**: The Anthropic API integration now correctly reads and passes the `temperature` parameter from `config.yaml`, instead of ignoring it.
+- **Missing `.yml` Support**: The test case glob discovery in `run_suite` now successfully collects `.yml` files in addition to `.yaml` and `.txt`.
+
 ## [2.1.3] - 2026-07-14
 
 ### Fixed
