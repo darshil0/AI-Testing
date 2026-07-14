@@ -5,12 +5,29 @@ import pandas as pd
 import seaborn as sns
 
 
+import yaml
+
+
 def generate_analytics(results_path=None) -> None:
     # Resolve paths relative to the project root
     base_dir = Path(__file__).parent.parent
 
     if results_path is None:
-        results_file = base_dir / "ai_evaluation" / "results" / "latest_results.json"
+        # Load from config.yaml dynamically
+        config_path = base_dir / "ai_evaluation" / "config.yaml"
+        results_dir_name = "results"
+        if config_path.exists():
+            try:
+                with config_path.open("r", encoding="utf-8") as f:
+                    config = yaml.safe_load(f)
+                    results_dir_name = config.get("directories", {}).get(
+                        "results", "results"
+                    )
+            except Exception as e:
+                print(f"Warning: Could not read config file {config_path}: {e}")
+
+        results_dir = base_dir / "ai_evaluation" / results_dir_name
+        results_file = results_dir / "latest_results.json"
     else:
         results_file = Path(results_path)
 
