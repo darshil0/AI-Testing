@@ -5,6 +5,14 @@ All notable changes to the AI-Testing project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.1.5] - 2026-07-15
+
+### Added
+
+- **Version Synchronization**: Synchronized and standardized all package and CLI version references to `2.1.5` across `pyproject.toml`, `ai_evaluation/__init__.py`, `tests/__init__.py`, `ai_evaluation/run_evaluation.py`, and `ai_evaluation/dashboard.py`.
+- **Dependency Alignments**: Upgraded and synchronized dependencies across `pyproject.toml`, `requirements.txt`, and regenerated `requirements.lock` with pip-compile.
+- **Documentation Polishing**: Overhauled `docs/CONTRIBUTING.md` and `README.md` to ensure instructions align with standard development setups.
+
 ## [2.1.4] - 2026-07-14
 
 ### Fixed

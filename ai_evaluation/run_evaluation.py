@@ -399,7 +399,7 @@ def main() -> None:
     import argparse
 
     parser = argparse.ArgumentParser(
-        description="AI Evaluation Framework V2.1.0",
+        description="AI Evaluation Framework V2.1.5",
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog="""
 Examples:
@@ -437,7 +437,7 @@ Examples:
         evaluator = AIEvaluator(config_path=args.config)
         console.print(
             Panel.fit(
-                f"🤖 AI Benchmark V2.1.0\nPersona: {args.persona}\nModels: {', '.join(args.models)}",
+                f"🤖 AI Benchmark V2.1.5\nPersona: {args.persona}\nModels: {', '.join(args.models)}",
                 style="bold green",
             )
         )
