@@ -5,6 +5,27 @@ All notable changes to the AI-Testing project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.1.3] - 2026-07-14
+
+### Fixed
+
+- **Prompt Contamination**: `_parse_test_case` for `.txt` files was passing the entire raw file content — including `Category:` and `Difficulty:` metadata header lines — as the AI prompt. Added a regex strip so only the body text after the headers is sent to the model.
+- **Mutable Pydantic Default**: `EvaluationResult.pii_types` was declared as `List[str] = []`, a mutable default incompatible with Pydantic v2. Changed to `Field(default_factory=list)`.
+- **Fragile Judge JSON Regex**: The regex `r'\{[^}]*"score"[^}]*\}'` used to extract the judge's JSON response broke silently whenever the `reasoning` value contained a `}` character (e.g. in code snippets). Changed to a non-greedy DOTALL match.
+- **`OllamaModel` Dict-Style Access**: `resp["message"]["content"]` crashed at runtime because the `ollama` library returns an object, not a dict. Changed to `resp.message.content`.
+- **Missing `@retry` on `GeminiModel`**: Unlike `OpenAIModel` and `AnthropicModel`, `GeminiModel.call` had no retry decorator, making it brittle against transient rate-limit errors. Added `@retry(stop=stop_after_attempt(3), ...)`.
+- **`default_model_params` Never Read**: `config.yaml` defined `default_model_params.max_tokens` and `default_model_params.temperature`, but all model classes read top-level keys that didn't exist. Updated all model classes to check `default_model_params` first and added top-level alias keys to `config.yaml`.
+- **`FileHandler` Relative Path**: `logging.FileHandler("evaluation.log")` wrote the log to whatever the process's current working directory happened to be. Changed to an absolute path anchored at the project root via `__file__`.
+- **`load_from_hf` Inaccurate Count Log**: The success log always reported the original `count` argument, even if fewer items had a usable prompt field. Worse, `i` would be undefined if the dataset was empty, causing a `NameError`. Introduced a `written_count` variable incremented only when a file is actually written.
+- **`TextColumn` Format String**: `TextColumn("{task.description}")` skipped Rich's canonical `progress.description` style. Changed to `TextColumn("[progress.description]{task.description}")`.
+- **`subprocess.run` Missing `check=True`**: `dashboard.py`'s `main()` called `subprocess.run(...)` without `check=True`, silently swallowing failures (e.g. Streamlit not installed). Added `check=True`.
+- **`__init__.py` CRLF Line Endings**: The file used Windows-style `\r\n` line endings inconsistently with the rest of the project. Converted to LF.
+- **Version String Mismatch**: `argparse` description said `"AI Evaluation Framework V2.0.2"` while the package and startup banner both reported `V2.1.0`. Aligned to `V2.1.0`.
+- **Missing `encoding="utf-8"`**: Added the explicit encoding argument to `open()` calls in `dashboard.py` and two locations in `tests/test_run_evaluation.py` to prevent `UnicodeDecodeError` / `UnicodeEncodeError` on Windows.
+- **`requirements.txt` Version Conflict**: `pandas>=2.1.0` conflicted with `pandas>=2.0.0` in `pyproject.toml`. Aligned both to `>=2.0.0`.
+
+---
+
 ## [2.1.2] - 2026-07-13
 
 ### Fixed

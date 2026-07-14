@@ -1,6 +1,6 @@
 # AI-Testing 🤖
 
-A professional, enterprise-ready evaluation framework for benchmarking AI models across various domains. Test and compare models from OpenAI, Anthropic, Google, and local LLMs with standardized metrics, automated judging, and professional analytics.
+> **Version 2.1.3** — A professional, enterprise-ready evaluation framework for benchmarking AI models across various domains. Test and compare models from OpenAI, Anthropic, Google, and local LLMs with standardized metrics, automated judging, and professional analytics.
 
 ---
 
@@ -48,7 +48,8 @@ AI-Testing/
 │   ├── __init__.py
 │   ├── run_evaluation.py    # Main evaluation engine
 │   ├── dashboard.py         # Streamlit dashboard
-│   ├── models.py            # Model adapters (OpenAI, Anthropic, etc.)
+│   ├── models.py            # Model adapters (OpenAI, Anthropic, Gemini, Ollama)
+│   ├── analytics.py         # Matplotlib/Seaborn chart generation
 │   ├── config.yaml          # Centralized configuration
 │   └── test_cases/          # Test prompts and scenarios
 ├── tests/                   # Unit and integration tests
@@ -162,6 +163,17 @@ expectations:
 
 ```
 
+### Plain Text Format
+
+Create a `.txt` file in `ai_evaluation/test_cases/`. Optional `Category:` and `Difficulty:` header lines are parsed as metadata and **stripped from the prompt** before it is sent to the model — only the body text below the headers is used.
+
+```text
+Category: Reasoning
+Difficulty: Hard
+
+If a train travels 60 mph for 2 hours and then 80 mph for 1 hour, what is the average speed for the whole journey?
+```
+
 ---
 
 ## 🧪 Development
@@ -177,29 +189,6 @@ flake8 .
 
 # Run simulated evaluation
 run-evaluation --models simulated:default
-```
-
-### Dependency Management
-
-The project uses `pip-tools` to manage and pin dependencies for reproducible runs.
-
-* **Core & Dev Dependencies**: Defined in `pyproject.toml`.
-* **Lock File**: Compiled into `requirements.lock`.
-
-To compile or update the lock file after modifying `pyproject.toml`, run:
-
-```bash
-# Install pip-tools
-pip install pip-tools
-
-# Regenerate requirements.lock
-pip-compile pyproject.toml --extra dev -o requirements.lock --resolver=backtracking
-```
-
-To install packages from the lock file:
-
-```bash
-pip install -r requirements.lock
 ```
 
 ### Adding a New Model Provider
