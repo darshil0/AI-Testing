@@ -1,6 +1,7 @@
 import pytest
 from pathlib import Path
 from unittest.mock import MagicMock, patch
+import sys
 import yaml
 from ai_evaluation.run_evaluation import AIEvaluator, EvaluationResult, TestCase
 
@@ -142,7 +143,9 @@ def test_score_clamping(evaluator, mocker):
     test_case = TestCase(name="clamp", category="G", difficulty="E", prompt="P")
 
     # Target the get_model function where it is looked up in run_evaluation
-    with patch("ai_evaluation.run_evaluation.get_model") as mock_get_model:
+    # Avoid AttributeError on runtimes where ai_evaluation.__init__.py overrides the module reference
+    target_module = sys.modules["ai_evaluation.run_evaluation"]
+    with patch.object(target_module, "get_model") as mock_get_model:
         mock_model = MagicMock()
         mock_get_model.return_value = mock_model
 
