@@ -1,0 +1,10 @@
+name: factual_accuracy_normal
+category: Factual
+difficulty: Easy
+prompt: |
+  What chemical compound is represented by the formula H2O?
+expectations:
+  - "State that the chemical compound is water"
+metadata:
+  scenario: normal
+  focus: factual_accuracy

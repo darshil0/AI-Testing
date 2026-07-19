@@ -1,0 +1,11 @@
+name: hallucination_normal
+category: Factual
+difficulty: Easy
+prompt: |
+  In what year was the first successful crewed Apollo moon landing, and what was the name of the lunar module?
+expectations:
+  - "State the year as 1969"
+  - "Identify the lunar module as 'Eagle'"
+metadata:
+  scenario: normal
+  focus: hallucination

@@ -1,0 +1,15 @@
+name: rag_grounding_citation_normal
+category: RAG
+difficulty: Easy
+prompt: |
+  Based on the context below, state the launch date of the James Webb Space Telescope and its primary scientific mission. Cite the source directly.
+
+  Context:
+  [Source 1]: The James Webb Space Telescope (JWST) was launched on December 25, 2021.
+  [Source 2]: The telescope's primary mission is to conduct infrared astronomy and investigate the earliest stars and galaxies.
+expectations:
+  - "State the launch date as December 25, 2021 citing [Source 1]"
+  - "Describe the primary mission as infrared astronomy / earliest stars citing [Source 2]"
+metadata:
+  scenario: normal
+  focus: rag_grounding
