@@ -39,13 +39,13 @@ pytest
 
 **Before (v2.0.0)**:
 ```bash
-python ai_evaluation/run_evaluation.py --models openai:gpt-4o
+python -m ai_evaluation.run_evaluation --models openai:gpt-4o
 ```
 
 **After (v2.0.1)**:
 ```bash
 # Exactly the same! No changes needed
-python ai_evaluation/run_evaluation.py --models openai:gpt-4o
+python -m ai_evaluation.run_evaluation --models openai:gpt-4o
 
 # Plus you now get:
 # - Better error messages
@@ -95,7 +95,7 @@ pytest
 ### 1. Sequential Mode (for debugging)
 ```bash
 # Run tests one at a time instead of parallel
-python ai_evaluation/run_evaluation.py \
+python -m ai_evaluation.run_evaluation \
   --models openai:gpt-4o \
   --sequential
 ```
@@ -113,13 +113,13 @@ After running evaluations, you'll now see:
 ```bash
 # These all work now:
 cd AI-Testing/
-python ai_evaluation/run_evaluation.py --models simulated:default
+python -m ai_evaluation.run_evaluation --models simulated:default
 
 cd ai_evaluation/
 python run_evaluation.py --models simulated:default
 
 cd ~/anywhere/
-python ~/AI-Testing/ai_evaluation/run_evaluation.py --models simulated:default
+python -m ai_evaluation.run_evaluation --models simulated:default
 ```
 
 ---
@@ -191,7 +191,7 @@ pytest --cov=ai_evaluation
 ### 3. Test Your Workflow
 ```bash
 # Run a quick evaluation to verify everything works
-python ai_evaluation/run_evaluation.py \
+python -m ai_evaluation.run_evaluation \
   --models simulated:default
 
 # Check for the new summary table at the end
@@ -323,7 +323,7 @@ git checkout v2.0.0
 pip install -r requirements.txt --force-reinstall
 
 # 3. Verify
-python ai_evaluation/run_evaluation.py --models simulated:default
+python -m ai_evaluation.run_evaluation --models simulated:default
 ```
 
 **Note**: We don't recommend rolling back as v2.0.1 fixes critical issues, but the option is available if needed.

@@ -8,8 +8,15 @@ automated evaluations, and visualizing results through a dashboard.
 __version__ = "2.1.5"
 
 from .run_evaluation import main as run_evaluation
-from .dashboard import main as run_dashboard
 from .models import BaseModel
+
+
+def run_dashboard():
+    """Lazily import and run the Streamlit dashboard."""
+    from .dashboard import main
+
+    return main()
+
 
 # Explicitly define the public API for the package
 __all__ = [

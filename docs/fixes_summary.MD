@@ -212,16 +212,16 @@ cd AI-Testing
 pip install -r requirements.txt  # No duplicate packages
 
 # Run from any directory (fixed path resolution)
-python ai_evaluation/run_evaluation.py --models simulated:default
+python -m ai_evaluation.run_evaluation --models simulated:default
 ```
 
 ### Running Evaluations
 ```bash
 # All these now work reliably:
-python ai_evaluation/run_evaluation.py --models openai:gpt-4o
-python ai_evaluation/run_evaluation.py --models openai:gpt-4o --persona critic
-python ai_evaluation/run_evaluation.py --models openai:gpt-4o ollama:llama3
-python ai_evaluation/run_evaluation.py --models simulated:default --sequential
+python -m ai_evaluation.run_evaluation --models openai:gpt-4o
+python -m ai_evaluation.run_evaluation --models openai:gpt-4o --persona critic
+python -m ai_evaluation.run_evaluation --models openai:gpt-4o ollama:llama3
+python -m ai_evaluation.run_evaluation --models simulated:default --sequential
 ```
 
 ### Testing

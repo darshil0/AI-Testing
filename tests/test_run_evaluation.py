@@ -1,142 +1,216 @@
 import json
-import re
-from dataclasses import dataclass, field
-from pathlib import Path
-from typing import List, Tuple
+import pytest
+from unittest.mock import MagicMock, patch
 
-import yaml
-
-
-@dataclass
-class TestCase:
-    name: str
-    category: str
-    difficulty: str
-    prompt: str
-    expectations: List[str] = field(default_factory=list)
+from ai_evaluation.run_evaluation import (
+    AIEvaluator,
+    TestCase,
+    extract_json_blocks,
+)
 
 
-@dataclass
-class EvaluationResult:
-    test_case_name: str
-    model_type: str
-    category: str
-    difficulty: str
-    prompt: str
-    response: str
-    duration_seconds: float
-    tokens_input: int
-    tokens_output: int
-    estimated_cost: float
-    judge_score: float
-    judge_reasoning: str
+def test_extract_json_blocks_basic():
+    text = 'Some prefix { "score": 0.9, "reasoning": "good" } postfix'
+    blocks = extract_json_blocks(text)
+    assert len(blocks) == 1
+    assert json.loads(blocks[0])["score"] == 0.9
 
 
-class AIEvaluator:
-    def __init__(self, config_path: str):
-        self.config_path = config_path
-        with open(config_path, "r") as f:
-            self.config = yaml.safe_load(f) or {}
-        dirs = self.config.get("directories", {})
-        self.test_cases_dir = Path(dirs.get("test_cases", "test_cases"))
-        self.results_dir = Path(dirs.get("results", "results"))
-        self.results_dir.mkdir(parents=True, exist_ok=True)
-        self.results = []
+def test_extract_json_blocks_nested():
+    text = '{ "score": 0.8, "reasoning": { "nested": "braces" } }'
+    blocks = extract_json_blocks(text)
+    assert len(blocks) == 1
+    data = json.loads(blocks[0])
+    assert data["score"] == 0.8
+    assert data["reasoning"]["nested"] == "braces"
 
-    def _parse_test_case(self, file_path: Path) -> TestCase:
-        try:
-            if file_path.suffix.lower() in {".yaml", ".yml"}:
-                with open(file_path, "r") as f:
-                    data = yaml.safe_load(f) or {}
-                return TestCase(
-                    name=file_path.stem,
-                    category=data.get("category", "General"),
-                    difficulty=data.get("difficulty", "Unknown"),
-                    prompt=data.get("prompt", ""),
-                    expectations=list(data.get("expectations", []) or []),
-                )
 
-            text = file_path.read_text()
-            category = "General"
-            difficulty = "Unknown"
-            lines = text.splitlines()
-            body_index = 0
-            for i, line in enumerate(lines):
-                if line.strip() == "":
-                    body_index = i + 1
-                    break
-                if line.lower().startswith("category:"):
-                    category = line.split(":", 1)[1].strip()
-                elif line.lower().startswith("difficulty:"):
-                    difficulty = line.split(":", 1)[1].strip()
-            prompt = "\n".join(lines[body_index:]).strip() if body_index else text
-            return TestCase(name=file_path.stem, category=category, difficulty=difficulty, prompt=prompt)
-        except Exception as e:
-            return TestCase(
-                name=file_path.stem,
-                category="Error",
-                difficulty="Error",
-                prompt=f"Error parsing test case: {e}",
-            )
+def test_extract_json_blocks_multiple():
+    text = (
+        'First block: { "id": 1 } and Second block: '
+        '{ "score": 0.5, "reasoning": "ok" }'
+    )
+    blocks = extract_json_blocks(text)
+    assert len(blocks) == 2
+    assert json.loads(blocks[0])["id"] == 1
+    assert json.loads(blocks[1])["score"] == 0.5
 
-    def _pii_scan(self, text: str):
-        found = []
-        for name, pattern in self.config.get("pii_patterns", {}).items():
-            try:
-                if re.search(pattern, text):
-                    found.append(name)
-            except re.error:
-                continue
-        return (len(found) > 0, found)
 
-    def judge_response(self, test_case: TestCase, response: str) -> Tuple[float, str]:
-        try:
-            model = get_model(self.config.get("judge", {}).get("model", ""))
-            raw, _, _ = model.call(test_case.prompt, response, test_case.category, test_case.difficulty)
-            try:
-                data = json.loads(raw) if isinstance(raw, str) else raw
-                score = float(data.get("score", 0.5))
-                score = max(0.0, min(1.0, score))
-                reasoning = data.get("reasoning", "")
-                return score, reasoning
-            except Exception:
-                return 0.5, f"Could not parse judge response: {raw}"
-        except Exception as e:
-            return 0.5, f"Could not parse judge response: {e}"
+def test_parse_test_case_yaml(tmp_path):
+    yaml_content = """
+category: Coding
+difficulty: Hard
+prompt: "Write a quicksort in Python."
+expectations:
+  - "Use a pivot"
+  - "Average O(n log n)"
+"""
+    file_path = tmp_path / "quicksort.yaml"
+    file_path.write_text(yaml_content, encoding="utf-8")
 
-    def process_one(self, file_path, model_id, persona):
-        tc = self._parse_test_case(file_path)
-        return EvaluationResult(
-            test_case_name=tc.name,
-            model_type=model_id,
-            category=tc.category,
-            difficulty=tc.difficulty,
-            prompt=tc.prompt,
-            response="response",
-            duration_seconds=0.0,
-            tokens_input=0,
-            tokens_output=0,
-            estimated_cost=0.0,
-            judge_score=0.5,
-            judge_reasoning="",
+    evaluator = AIEvaluator()
+    tc = evaluator._parse_test_case(file_path)
+
+    assert tc.name == "quicksort"
+    assert tc.category == "Coding"
+    assert tc.difficulty == "Hard"
+    assert tc.prompt.strip() == "Write a quicksort in Python."
+    assert "Use a pivot" in tc.expectations
+
+
+def test_parse_test_case_txt(tmp_path):
+    # Test txt parsing with headers and anchored metadata
+    txt_content = """Category: Reasoning
+Difficulty: Easy
+
+This is not a Category: Coding line.
+What is 2+2?
+"""
+    file_path = tmp_path / "math.txt"
+    file_path.write_text(txt_content, encoding="utf-8")
+
+    evaluator = AIEvaluator()
+    tc = evaluator._parse_test_case(file_path)
+
+    assert tc.name == "math"
+    assert tc.category == "Reasoning"
+    assert tc.difficulty == "Easy"
+    assert "This is not a Category: Coding line." in tc.prompt
+    assert "What is 2+2?" in tc.prompt
+
+
+def test_pii_scanner():
+    evaluator = AIEvaluator()
+    # Test standard email pattern from config
+    has_pii, found_types = evaluator._pii_scan("My email is test@example.com")
+    assert has_pii is True
+    assert "email" in found_types
+
+    # Test phone pattern from config
+    has_pii, found_types = evaluator._pii_scan("Call me at 123-456-7890")
+    assert has_pii is True
+    assert "phone" in found_types
+
+    # Test text without PII
+    has_pii, found_types = evaluator._pii_scan("Hello world!")
+    assert has_pii is False
+    assert len(found_types) == 0
+
+
+def test_score_clamping():
+    # Test that score clamping handles out-of-bounds scores correctly
+    evaluator = AIEvaluator()
+    tc = TestCase(name="dummy", prompt="dummy", expectations=["dummy"])
+
+    # We mock judge_model inside get_model
+    mock_model = MagicMock()
+    mock_model.call.return_value = (
+        '{"score": 1.5, "reasoning": "Excellent!"}',
+        10,
+        10,
+    )
+
+    with patch("ai_evaluation.run_evaluation.get_model", return_value=mock_model):
+        score, reasoning = evaluator.judge_response(tc, "dummy response")
+        assert score == 1.0  # Clamped to max 1.0
+        assert reasoning == "Excellent!"
+
+    mock_model.call.return_value = (
+        '{"score": -0.5, "reasoning": "Terrible!"}',
+        10,
+        10,
+    )
+    with patch("ai_evaluation.run_evaluation.get_model", return_value=mock_model):
+        score, reasoning = evaluator.judge_response(tc, "dummy response")
+        assert score == 0.0  # Clamped to min 0.0
+        assert reasoning == "Terrible!"
+
+
+def test_judge_score_parsing_valid():
+    evaluator = AIEvaluator()
+    tc = TestCase(name="dummy", prompt="dummy", expectations=["dummy"])
+
+    mock_model = MagicMock()
+    mock_model.call.return_value = (
+        'Some filler text before JSON { "score": 0.85, '
+        '"reasoning": "Well answered" } filler after',
+        10,
+        10,
+    )
+
+    with patch("ai_evaluation.run_evaluation.get_model", return_value=mock_model):
+        score, reasoning = evaluator.judge_response(tc, "dummy response")
+        assert score == 0.85
+        assert reasoning == "Well answered"
+
+
+def test_judge_score_parsing_malformed():
+    evaluator = AIEvaluator()
+    tc = TestCase(name="dummy", prompt="dummy", expectations=["dummy"])
+
+    mock_model = MagicMock()
+    # Invalid JSON block (unbalanced or key missing)
+    mock_model.call.return_value = ('{ "invalid_json": "no_score_key" ', 10, 10)
+
+    with patch("ai_evaluation.run_evaluation.get_model", return_value=mock_model):
+        with pytest.raises(
+            ValueError, match="Judge response did not contain valid JSON"
+        ):
+            evaluator.judge_response(tc, "dummy response")
+
+
+def test_judge_score_parsing_nested():
+    evaluator = AIEvaluator()
+    tc = TestCase(name="dummy", prompt="dummy", expectations=["dummy"])
+
+    mock_model = MagicMock()
+    mock_model.call.return_value = (
+        '{ "score": 0.95, "reasoning": { "details": '
+        '"The response was correct.", "confidence": "high" } }',
+        10,
+        10,
+    )
+
+    with patch("ai_evaluation.run_evaluation.get_model", return_value=mock_model):
+        score, reasoning = evaluator.judge_response(tc, "dummy response")
+        assert score == 0.95
+        assert reasoning == {
+            "details": "The response was correct.",
+            "confidence": "high",
+        }
+
+
+def test_judge_score_parsing_multiple_blocks():
+    evaluator = AIEvaluator()
+    tc = TestCase(name="dummy", prompt="dummy", expectations=["dummy"])
+
+    mock_model = MagicMock()
+    # First block is just details, second block is the actual evaluation
+    mock_model.call.return_value = (
+        'First block: { "info": "started" } and second block: '
+        '{ "score": 0.75, "reasoning": "satisfactory" }',
+        10,
+        10,
+    )
+
+    with patch("ai_evaluation.run_evaluation.get_model", return_value=mock_model):
+        score, reasoning = evaluator.judge_response(tc, "dummy response")
+        assert score == 0.75
+        assert reasoning == "satisfactory"
+
+
+def test_missing_pricing_warning(caplog):
+    from ai_evaluation.models import SimulatedModel
+    import logging
+
+    # Create model with a name not in config pricing
+    config = {"pricing": {"some_other_model": {"input": 1.0, "output": 2.0}}}
+    model = SimulatedModel(model_name="unconfigured_model", config=config)
+
+    with caplog.at_level(logging.WARNING):
+        cost = model._calculate_cost(1000000, 2000000)
+        assert cost == 0.0
+        assert any(
+            "Pricing config is missing for model" in record.message
+            for record in caplog.records
         )
-
-    def run_suite(self, model_ids, parallel=False):
-        self.results = []
-        if not self.test_cases_dir.exists():
-            return
-        for file_path in sorted(self.test_cases_dir.iterdir()):
-            if file_path.suffix.lower() not in {".txt", ".yaml", ".yml"}:
-                continue
-            for model_id in model_ids:
-                self.results.append(self.process_one(file_path, model_id, "default"))
-
-    def export(self):
-        self.results_dir.mkdir(parents=True, exist_ok=True)
-        payload = [r.__dict__ for r in self.results]
-        (self.results_dir / "latest_results.json").write_text(json.dumps(payload, indent=2))
-        (self.results_dir / "run_0001.json").write_text(json.dumps(payload, indent=2))
-
-
-def get_model(model_id):
-    raise NotImplementedError

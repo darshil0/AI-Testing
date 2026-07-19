@@ -10,8 +10,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 
 - **Version Synchronization**: Synchronized and standardized all package and CLI version references to `2.1.5` across `pyproject.toml`, `ai_evaluation/__init__.py`, `tests/__init__.py`, `ai_evaluation/run_evaluation.py`, and `ai_evaluation/dashboard.py`.
-- **Dependency Alignments**: Upgraded and synchronized dependencies across `pyproject.toml`, `requirements.txt`, and regenerated `requirements.lock` with pip-compile.
 - **Documentation Polishing**: Overhauled `docs/CONTRIBUTING.md` and `README.md` to ensure instructions align with standard development setups.
+- **Lazy Dashboard Loading**: Added lazy import wrapper `run_dashboard()` inside package initialization to prevent eager importing of Streamlit when calling other parts of the package.
+- **Execution Entry Points**: Created package entry point `ai_evaluation/__main__.py` to support running the evaluation via `python -m ai_evaluation` cleanly.
+
+### Fixed
+
+- **Test Discovery & CI failures**: Replaced tests scaffolding in `tests/test_run_evaluation.py` with 12 deterministic and comprehensive unit tests. Resolved pytest collection warning on `TestCase`.
+- **Hardened JSON parsing**: Replaced fragile judge response regex with balanced brace block parsing (`extract_json_blocks`), validated parsing and expected schema keys, and replaced silent failures with warning/error propagation. Modified `process_one` to cleanly catch judge exceptions and retain raw model responses.
+- **Docker Layer Caching & Package build**: Modified `Dockerfile` to copy `pyproject.toml` and package source directory `ai_evaluation/` before executing `pip install -e .` to resolve packaging build failure while preserving caching.
+- **CLI Usage Documentation**: Realigned all docs to prefer standardized module-entry invocations (`python -m ai_evaluation.run_evaluation` and `python -m ai_evaluation`).
+- **Dependency Drift Resolved**: Cleaned up package drift by removing redundant `requirements.txt` and establishing `pyproject.toml` as single source of truth.
+- **Accuracy & Correctness Polishing**: Anchored plain text test-case headers strictly to line starts. Added missing pricing warnings in `models.py` and retry logic to `OllamaModel.call`.
+- **Environment Minimalization**: Cleaned up unused, dead environment variables in `.env.example`.
+- **Documentation Realignment**: Realigned documentation to match actual feature implementations by removing unsupported expected answer claims.
 
 ## [2.1.4] - 2026-07-14
 
