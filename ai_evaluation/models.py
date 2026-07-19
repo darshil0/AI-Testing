@@ -46,9 +46,14 @@ class BaseModel:
         raise NotImplementedError
 
     def _calculate_cost(self, input_tokens: int, output_tokens: int) -> float:
-        prices = self.config.get("pricing", {}).get(
-            self.model_name, {"input": 0.0, "output": 0.0}
-        )
+        pricing_config = self.config.get("pricing", {})
+        if self.model_name not in pricing_config:
+            logger.warning(
+                f"Pricing config is missing for model '{self.model_name}'. Cost will be set to $0.0."
+            )
+            prices = {"input": 0.0, "output": 0.0}
+        else:
+            prices = pricing_config[self.model_name]
         return (input_tokens / 1_000_000 * prices["input"]) + (
             output_tokens / 1_000_000 * prices["output"]
         )
@@ -163,6 +168,10 @@ class OllamaModel(BaseModel):
         if not OLLAMA_AVAILABLE:
             raise ValueError("Ollama not installed.")
 
+    @retry(
+        stop=stop_after_attempt(3),
+        wait=wait_exponential(multiplier=1, min=4, max=10),
+    )
     def call(self, prompt: str) -> Tuple[str, int, int]:
         resp = ollama.chat(
             model=self.model_name,

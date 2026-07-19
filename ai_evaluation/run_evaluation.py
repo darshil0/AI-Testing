@@ -49,7 +49,37 @@ logger = logging.getLogger("rich")
 console = Console()
 
 
+def extract_json_blocks(text: str) -> List[str]:
+    """Find all potential JSON object blocks in text using balanced braces."""
+    blocks = []
+    i = 0
+    n = len(text)
+    while i < n:
+        start_idx = text.find("{", i)
+        if start_idx == -1:
+            break
+
+        count = 0
+        end_idx = -1
+        for j in range(start_idx, n):
+            char = text[j]
+            if char == "{":
+                count += 1
+            elif char == "}":
+                count -= 1
+                if count == 0:
+                    end_idx = j
+                    break
+        if end_idx != -1:
+            blocks.append(text[start_idx : end_idx + 1])
+            i = end_idx + 1
+        else:
+            i = start_idx + 1
+    return blocks
+
+
 class TestCase(BaseModel):
+    __test__ = False
     name: str
     category: str = "General"
     difficulty: str = "Medium"
@@ -181,26 +211,43 @@ MODEL RESPONSE: {response}"""
 
         try:
             raw, _, _ = judge_model.call(prompt)
-            # Try to extract JSON from the response
-            match = re.search(r'\{.*?"score".*?\}', raw, re.DOTALL)
-            if match:
-                data = json.loads(match.group())
-                score = float(data.get("score", 0.0))
+            blocks = extract_json_blocks(raw)
+            parsed_data = None
+            for block in blocks:
+                try:
+                    data = json.loads(block)
+                    if isinstance(data, dict) and "score" in data:
+                        parsed_data = data
+                        break
+                except json.JSONDecodeError:
+                    continue
+
+            if parsed_data is not None:
+                # Validate JSON/fields
+                if "score" not in parsed_data:
+                    raise ValueError("JSON is missing the required 'score' key.")
+
+                try:
+                    score = float(parsed_data["score"])
+                except (TypeError, ValueError) as e:
+                    raise ValueError(
+                        f"Score is not a valid float: {parsed_data['score']}"
+                    ) from e
+
                 # Clamp score to valid range
                 score = max(0.0, min(1.0, score))
-                reasoning = data.get("reasoning", "")
+                reasoning = parsed_data.get("reasoning", "")
                 return score, reasoning
             else:
                 logger.warning(
                     f"Judge response did not contain valid JSON: {raw[:100]}"
                 )
-                return 0.5, "Could not parse judge response"
-        except json.JSONDecodeError as e:
-            logger.error(f"Judge returned invalid JSON: {e}")
-            return 0.0, "Judge returned invalid JSON"
+                raise ValueError(
+                    f"Judge response did not contain valid JSON with score. Raw response: {raw}"
+                )
         except Exception as e:
             logger.error(f"Judging failed: {e}")
-            return 0.0, f"Judging error: {str(e)}"
+            raise e
 
     def _parse_test_case(self, file_path: Path) -> TestCase:
         """Parse a test case from a file."""
@@ -215,9 +262,13 @@ MODEL RESPONSE: {response}"""
             with open(file_path, "r", encoding="utf-8") as f:
                 content = f.read()
 
-            # Parse headers
-            category_match = re.search(r"Category:\s*(.*)", content, re.IGNORECASE)
-            difficulty_match = re.search(r"Difficulty:\s*(.*)", content, re.IGNORECASE)
+            # Parse headers - anchored strictly to line start using multiline flag
+            category_match = re.search(
+                r"^Category:\s*(.*)", content, re.IGNORECASE | re.MULTILINE
+            )
+            difficulty_match = re.search(
+                r"^Difficulty:\s*(.*)", content, re.IGNORECASE | re.MULTILINE
+            )
 
             category = category_match.group(1).strip() if category_match else "General"
             difficulty = (
@@ -262,7 +313,11 @@ MODEL RESPONSE: {response}"""
             duration = time.time() - start_time
             cost = model._calculate_cost(input_tokens, output_tokens)
             pii_found, pii_types = self._pii_scan(response)
-            score, reason = self.judge_response(tc, response, persona)
+            try:
+                score, reason = self.judge_response(tc, response, persona)
+            except Exception as je:
+                logger.warning(f"Judging failed for {tc.name}: {je}")
+                score, reason = -1.0, f"Judging failed: {str(je)}"
 
             return EvaluationResult(
                 test_case_name=tc.name,

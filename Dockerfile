@@ -17,15 +17,16 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     curl \
     && rm -rf /var/lib/apt/lists/*
 
-# Copy only packaging files first to leverage Docker layer caching
+# Copy packaging files and package source first to leverage Docker layer caching
 COPY pyproject.toml .
+COPY ai_evaluation/ ./ai_evaluation/
 
 # Install the package and its dependencies
 # We install '-e .' to trigger editable installation so console scripts are available
 RUN pip install --upgrade pip && \
     pip install -e .
 
-# Copy the rest of the project source
+# Copy the rest of the project source (docs, tests, etc.)
 COPY . .
 
 # Create persistent directories for results and ensure log file exists

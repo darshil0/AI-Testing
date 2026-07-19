@@ -178,7 +178,7 @@ pytest --cov=ai_evaluation --cov-report=term-missing
 ### Step 4: Test Functionality
 ```bash
 # Test from root directory
-python ai_evaluation/run_evaluation.py --models simulated:default
+python -m ai_evaluation.run_evaluation --models simulated:default
 
 # Test from ai_evaluation directory
 cd ai_evaluation

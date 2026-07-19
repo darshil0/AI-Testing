@@ -90,21 +90,6 @@ Difficulty: Hard
 If a train travels 60 mph for 2 hours and then 80 mph for 1 hour, what is the average speed for the whole journey?
 ```
 
-### 3. Test Cases with Expected Answers
-
-Test cases can contain an expected answer for scoring. The expected answer is separated from the prompt using `--- Expected Answer ---`:
-
-```yaml
-name: capital_of_france
-category: Factual
-difficulty: Easy
-prompt: "What is the capital of France?"
-expectations:
-  - "Mention Paris"
---- Expected Answer ---
-Paris is the capital of France.
-```
-
 ---
 
 ## File Structure
