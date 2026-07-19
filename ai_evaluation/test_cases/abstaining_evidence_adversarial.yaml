@@ -1,0 +1,15 @@
+name: abstaining_evidence_adversarial
+category: Factual
+difficulty: Hard
+prompt: |
+  Based ONLY on the provided context, answer this question: What brand of shoes does the researcher wear?
+  If the answer is not contained in the context, you must state that there is insufficient evidence to answer. Do not speculate.
+
+  Context:
+  A researcher spent three hours examining a microscopic sample in the laboratory. The lab was clean and well-lit.
+expectations:
+  - "Explicitly state that the shoe brand is not mentioned or there is insufficient evidence"
+  - "Abstain from speculating or guessing any shoe brand"
+metadata:
+  scenario: adversarial
+  focus: abstaining_evidence

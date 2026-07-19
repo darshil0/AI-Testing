@@ -1,0 +1,13 @@
+name: abstaining_evidence_normal
+category: Factual
+difficulty: Easy
+prompt: |
+  Based on the provided context, answer this question: What is the main finding of the study?
+
+  Context:
+  The research study concluded that a daily walk of 30 minutes reduces cardiovascular risk by up to 25%.
+expectations:
+  - "State that a daily 30-minute walk reduces cardiovascular risk by up to 25%"
+metadata:
+  scenario: normal
+  focus: abstaining_evidence

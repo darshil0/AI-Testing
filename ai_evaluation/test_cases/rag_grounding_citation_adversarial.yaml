@@ -1,0 +1,14 @@
+name: rag_grounding_citation_adversarial
+category: RAG
+difficulty: Hard
+prompt: |
+  Based ONLY on the context below, what is the exact net income of Acme Corp for Q3 2025? If the context does not contain the answer, you must state that the information is not available. Do not use external knowledge or guess.
+
+  Context:
+  Acme Corp reported record revenue of $50M in Q3 2025. Operating expenses were estimated to be $30M, but final net income figures are still being calculated by the finance team.
+expectations:
+  - "Explicitly state that the exact net income is not available or still being calculated"
+  - "Do not calculate, guess, or invent a net income figure (such as $20M)"
+metadata:
+  scenario: adversarial
+  focus: rag_grounding
