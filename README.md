@@ -61,6 +61,16 @@ AI-Testing/
 
 ---
 
+## 📚 Documentation
+
+For detailed, step-by-step instructions and reference sheets, explore our documentation guides:
+
+* 🚀 **[Setup Guide](docs/Setup.md)**: System prerequisites, environment variable configuration, virtual environment instructions, and directory verification.
+* 📋 **[Quick Reference Guide](docs/Quick%20Reference.md)**: Command-line cheat sheet, test case format examples (YAML, text, expected answers), and model provider prefix reference.
+* 🤝 **[Contributing Guidelines](docs/CONTRIBUTING.md)**: Coding standards (PEP 8, Black), workflow branching, writing tests, and pull request checklist.
+
+---
+
 ## 🚀 Getting Started
 
 ### 1. Installation
