@@ -6,14 +6,14 @@ This guide will walk you through setting up the AI-Testing evaluation framework 
 
 Before you begin, ensure you have the following installed:
 
-- **Python 3.8 or higher** - [Download Python](https://www.python.org/downloads/)
+- **Python 3.9 or higher** (Python 3.10+ recommended) - [Download Python](https://www.python.org/downloads/)
 - **pip** (Python package manager) - Usually comes with Python
 - **git** - [Download Git](https://git-scm.com/downloads)
 
 ### Verify Installations
 
 ```bash
-python3 --version  # Should show 3.8 or higher
+python3 --version  # Should show 3.9 or higher
 pip3 --version
 git --version
 ```
@@ -45,17 +45,28 @@ venv\Scripts\activate
 
 You should see `(venv)` appear in your terminal prompt, indicating the virtual environment is active.
 
-### 3. Install Dependencies
+### 3. Install Dependencies and CLI Tools
+
+Install the project in editable mode so that you get the command-line interface tools (`run-evaluation` and `view-dashboard`):
 
 ```bash
-pip install -r requirements.txt
+pip install -e .
 ```
 
-This will install all necessary Python packages including:
+If you plan on running tests or contributing, install the development dependencies as well:
+
+```bash
+pip install -e ".[dev]"
+```
+
+This will install all necessary Python packages and CLI entry points, including:
 - OpenAI API client
 - Anthropic API client
-- pandas for data analysis
-- python-dotenv for environment management
+- Google Generative AI client
+- Ollama local LLM integration
+- Pandas and Matplotlib/Seaborn for data analysis and charting
+- Streamlit for the visual results dashboard
+- Pytest for testing
 
 ### 4. Configure Environment Variables
 
@@ -79,18 +90,18 @@ notepad .env
 
 - **OpenAI**: Visit [OpenAI Platform](https://platform.openai.com/api-keys)
 - **Anthropic**: Visit [Anthropic Console](https://console.anthropic.com/)
+- **Google Gemini**: Visit [Google AI Studio](https://aistudio.google.com/)
 
 Example `.env` configuration:
-```
+```env
 OPENAI_API_KEY=sk-proj-...your-key...
 ANTHROPIC_API_KEY=sk-ant-...your-key...
-MAX_TOKENS=2000
-TEMPERATURE=0.7
+GEMINI_API_KEY=AIzaSy...your-key...
 ```
 
 ### 5. Create Directory Structure
 
-Ensure the necessary directories exist:
+Ensure the necessary directories exist (these are typically created automatically on startup, but can also be manually created):
 
 ```bash
 mkdir -p ai_evaluation/test_cases
@@ -99,162 +110,151 @@ mkdir -p ai_evaluation/results
 
 ### 6. Add Test Cases
 
-Copy the example test cases or create your own:
+The framework supports test cases in both simple text `.txt` and rich `.yaml` / `.yml` format.
 
-**Example test case** (`ai_evaluation/test_cases/simple_test.txt`):
+**YAML Format Example** (`ai_evaluation/test_cases/code_optimization.yaml`):
+```yaml
+name: code_optimization_task
+category: Coding
+difficulty: Hard
+prompt: |
+  Optimize this Python function for better time complexity:
+  def find_duplicates(arr):
+      # inefficient code here
+      pass
+
+expectations:
+  - "Mention using a set for O(n) complexity"
+  - "Provide working implementation"
 ```
+
+**Text Format Example** (`ai_evaluation/test_cases/simple_test.txt`):
+```text
 Category: reasoning
 Difficulty: easy
 
 What is 2 + 2? Explain your answer.
 ```
 
-Create test case files:
-```bash
-cd ai_evaluation/test_cases
-echo "What is the capital of France?" > geography_test.txt
-cd ../..
-```
-
 ### 7. Verify Setup
 
-Test that everything is working:
+Test that everything is working using the simulated model provider, which doesn't require any API key or billing setup:
 
 ```bash
-cd ai_evaluation
-python3 run_evaluation.py --model simulated
+run-evaluation --models simulated:default
 ```
 
-You should see output indicating test cases are being processed and results saved.
+You should see an intuitive terminal progress bar indicating test cases are being processed, followed by a beautiful Rich-formatted evaluation summary table showing scores, duration, and estimated cost, then results being exported.
+
+---
 
 ## Running Evaluations
+
+The evaluation framework provides the robust `run-evaluation` terminal CLI.
 
 ### Basic Usage
 
 **Run with simulated responses** (no API keys needed):
 ```bash
-python3 run_evaluation.py
+run-evaluation --models simulated:default
 ```
 
 **Run with OpenAI:**
 ```bash
-python3 run_evaluation.py --model openai
+run-evaluation --models openai:gpt-4o
 ```
 
 **Run with Anthropic Claude:**
 ```bash
-python3 run_evaluation.py --model anthropic
+run-evaluation --models anthropic:claude-3-5-sonnet-20241022
+```
+
+**Run and Compare Multiple Models Side-by-Side:**
+```bash
+run-evaluation --models openai:gpt-4o anthropic:claude-3-5-sonnet-20241022 simulated:default
 ```
 
 ### Advanced Options
 
-**Specify custom directories:**
+**Change the Judge Persona:**
+By default, the evaluator uses an objective judge. You can choose from standard personas: `default`, `critic`, `helper`, `auditor`:
 ```bash
-python3 run_evaluation.py \
-  --model anthropic \
-  --test-cases-dir custom_tests \
-  --results-dir custom_results
+run-evaluation --models simulated:default --persona critic
+```
+
+**Run Sequentially (useful for debugging):**
+To disable parallel execution and evaluate test cases one at a time:
+```bash
+run-evaluation --models simulated:default --sequential
+```
+
+**Specify custom configuration:**
+```bash
+run-evaluation --models simulated:default --config ai_evaluation/config.yaml
 ```
 
 **View help:**
 ```bash
-python3 run_evaluation.py --help
+run-evaluation --help
 ```
 
-## Viewing Results
+---
 
-Results are saved as JSON files in `ai_evaluation/results/`:
+## Viewing Results & Dashboard
+
+Each evaluation run automatically saves rich, detailed metadata to JSON files inside the `results/` directory configured in `config.yaml`.
+
+### Launching the Dashboard
+
+The framework comes with a Streamlit-based visual dashboard. You can launch it using:
 
 ```bash
-ls ai_evaluation/results/
-# Output: test_case_name_20251117_143045.json
-
-# View a result file
-cat ai_evaluation/results/test_case_name_20251117_143045.json | python -m json.tool
+view-dashboard
 ```
 
-Each result file contains:
-- Test case name and content
-- Model response
-- Timestamp
-- Metadata (model type, tokens, temperature, etc.)
+Alternatively, you can run:
+```bash
+python -m ai_evaluation.dashboard
+```
+
+The dashboard allows you to:
+- Compare model scores side-by-side.
+- Analyze latency, estimated cost, and token usage.
+- Examine detailed model responses, criteria-based judge scoring, and reasoning.
+- Scan for PII leaks flag warnings.
+
+### Exploring JSON Files Directly
+
+```bash
+# List all results
+ls ai_evaluation/results/
+
+# Format and view latest result
+cat ai_evaluation/results/latest_results.json | python -m json.tool
+```
+
+---
 
 ## Troubleshooting
 
 ### Common Issues
 
-**Problem: `ModuleNotFoundError: No module named 'openai'`**
-```bash
-# Solution: Ensure virtual environment is activated and install dependencies
-source venv/bin/activate  # or venv\Scripts\activate on Windows
-pip install -r requirements.txt
-```
+**Problem: `ModuleNotFoundError: No module named 'yaml'`**
+- **Solution**: Ensure your virtual environment is active and the package is correctly installed with `pip install -e .`.
+
+**Problem: `run-evaluation: command not found`**
+- **Solution**: The CLI script isn't in your path. Make sure your virtual environment is activated (`source venv/bin/activate`), and you've installed the project with `pip install -e .`. Alternatively, run the package as a module: `python -m ai_evaluation.run_evaluation --models simulated:default`.
 
 **Problem: API authentication error**
-```bash
-# Solution: Check your .env file has correct API keys
-cat .env  # Verify keys are present and correctly formatted
-```
+- **Solution**: Double-check that your `.env` file exists in the repository root, is formatted correctly, and has correct API keys without spaces or extra quotes.
 
-**Problem: No test cases found**
-```bash
-# Solution: Ensure test case files exist
-ls ai_evaluation/test_cases/
-# If empty, add some test case .txt files
-```
-
-**Problem: Permission denied when running script**
-```bash
-# Solution: Make the script executable
-chmod +x ai_evaluation/run_evaluation.py
-```
-
-### Getting Help
-
-If you encounter issues:
-
-1. Check the [Issues](https://github.com/darshil0/AI-Testing/issues) page
-2. Create a new issue with:
-   - Your Python version
-   - Error message (full output)
-   - Steps to reproduce
-3. Review logs in `evaluation.log` (if logging is enabled)
-
-## Next Steps
-
-Now that you're set up:
-
-1. **Add more test cases** in `ai_evaluation/test_cases/`
-2. **Run evaluations** with different models
-3. **Analyze results** in the `results/` directory
-4. **Contribute** by following [CONTRIBUTING.md](CONTRIBUTING.md)
-
-## Updating
-
-To update to the latest version:
-
-```bash
-git pull origin main
-pip install -r requirements.txt --upgrade
-```
-
-## Deactivating Virtual Environment
-
-When you're done:
-
-```bash
-deactivate
-```
-
-## Uninstalling
-
-To remove the project:
-
-```bash
-cd ..
-rm -rf AI-Testing
-```
+**Problem: Corrupt dashboard results**
+- **Solution**: If a corrupt JSON file in your results directory causes the dashboard to throw warnings, remove or back up the corrupted JSON runs and restart the dashboard.
 
 ---
 
-**Need help?** Open an issue or check the [README.md](README.md) for more information.
+## Next Steps
+
+1. **Add your own test cases** in `ai_evaluation/test_cases/` using `.yaml` or `.txt`.
+2. **Configure judge settings** or specialized model pricing in `ai_evaluation/config.yaml`.
+3. **Contribute** to the project! Check out [CONTRIBUTING.md](CONTRIBUTING.md) for style standards and test instructions.
