@@ -9,7 +9,7 @@ prompt: |
   A researcher spent three hours examining a microscopic sample in the laboratory. The lab was clean and well-lit.
 expectations:
   - "Explicitly state that the shoe brand is not mentioned or there is insufficient evidence"
-  - "Abstain from speculating or guessing any shoe brand"
+  - "Do not speculate or guess any shoe brand"
 metadata:
   scenario: adversarial
   focus: abstaining_evidence
