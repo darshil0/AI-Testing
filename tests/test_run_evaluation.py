@@ -1,4 +1,5 @@
 import json
+import sys
 import pytest
 from unittest.mock import MagicMock, patch
 
@@ -7,6 +8,8 @@ from ai_evaluation.run_evaluation import (
     TestCase,
     extract_json_blocks,
 )
+
+run_eval_module = sys.modules["ai_evaluation.run_evaluation"]
 
 
 def test_extract_json_blocks_basic():
@@ -110,7 +113,7 @@ def test_score_clamping():
         10,
     )
 
-    with patch("ai_evaluation.run_evaluation.get_model", return_value=mock_model):
+    with patch.object(run_eval_module, "get_model", return_value=mock_model):
         score, reasoning = evaluator.judge_response(tc, "dummy response")
         assert score == 1.0  # Clamped to max 1.0
         assert reasoning == "Excellent!"
@@ -120,7 +123,7 @@ def test_score_clamping():
         10,
         10,
     )
-    with patch("ai_evaluation.run_evaluation.get_model", return_value=mock_model):
+    with patch.object(run_eval_module, "get_model", return_value=mock_model):
         score, reasoning = evaluator.judge_response(tc, "dummy response")
         assert score == 0.0  # Clamped to min 0.0
         assert reasoning == "Terrible!"
@@ -138,7 +141,7 @@ def test_judge_score_parsing_valid():
         10,
     )
 
-    with patch("ai_evaluation.run_evaluation.get_model", return_value=mock_model):
+    with patch.object(run_eval_module, "get_model", return_value=mock_model):
         score, reasoning = evaluator.judge_response(tc, "dummy response")
         assert score == 0.85
         assert reasoning == "Well answered"
@@ -152,7 +155,7 @@ def test_judge_score_parsing_malformed():
     # Invalid JSON block (unbalanced or key missing)
     mock_model.call.return_value = ('{ "invalid_json": "no_score_key" ', 10, 10)
 
-    with patch("ai_evaluation.run_evaluation.get_model", return_value=mock_model):
+    with patch.object(run_eval_module, "get_model", return_value=mock_model):
         with pytest.raises(
             ValueError, match="Judge response did not contain valid JSON"
         ):
@@ -171,7 +174,7 @@ def test_judge_score_parsing_nested():
         10,
     )
 
-    with patch("ai_evaluation.run_evaluation.get_model", return_value=mock_model):
+    with patch.object(run_eval_module, "get_model", return_value=mock_model):
         score, reasoning = evaluator.judge_response(tc, "dummy response")
         assert score == 0.95
         assert reasoning == {
@@ -193,7 +196,7 @@ def test_judge_score_parsing_multiple_blocks():
         10,
     )
 
-    with patch("ai_evaluation.run_evaluation.get_model", return_value=mock_model):
+    with patch.object(run_eval_module, "get_model", return_value=mock_model):
         score, reasoning = evaluator.judge_response(tc, "dummy response")
         assert score == 0.75
         assert reasoning == "satisfactory"
