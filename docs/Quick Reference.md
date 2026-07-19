@@ -108,8 +108,7 @@ AI-Testing/
 │   └── config.yaml          # Config (personas, pricing, PII regex patterns)
 ├── docs/                   # Detailed documentation
 ├── tests/                  # Pytest unit tests
-├── pyproject.toml          # Packaging and package scripts
-├── requirements.txt        # Top-level dependencies
+├── pyproject.toml          # Packaging and package scripts (Single Source of Truth)
 └── requirements.lock       # Pin-locked compile specifications
 ```
 
