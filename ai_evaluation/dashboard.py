@@ -9,6 +9,13 @@ import sys
 
 import yaml
 
+# Reconfigure sys.stdout and sys.stderr to use utf-8 on Windows
+if sys.platform.startswith("win"):
+    if hasattr(sys.stdout, "reconfigure"):
+        sys.stdout.reconfigure(encoding="utf-8")
+    if hasattr(sys.stderr, "reconfigure"):
+        sys.stderr.reconfigure(encoding="utf-8")
+
 
 def show_dashboard():
     st.set_page_config(page_title="AI Benchmark Dashboard", layout="wide")
