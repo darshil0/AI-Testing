@@ -60,7 +60,7 @@ dev = [
 [project.scripts]
 run-evaluation = "ai_evaluation.run_evaluation:main"
 view-dashboard = "ai_evaluation.dashboard:main"
-generate-analytics = "ai_evaluation.analytics:main"
+generate-analytics = "ai_evaluation.analytics:generate_analytics"
 
 [project.urls]
 Homepage = "https://github.com/darshil0/AI-Testing"
