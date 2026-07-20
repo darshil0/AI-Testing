@@ -190,7 +190,7 @@ class AIEvaluator:
             judge_model = get_model(judge_model_id, self.config)
         except ValueError as e:
             logger.warning(f"Judge model error: {e}")
-            return 0.0, f"Judge model error: {e}"
+            return -1.0, f"Judge model error: {e}"
 
         criteria = (
             ", ".join(test_case.expectations)
