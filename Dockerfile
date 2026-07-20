@@ -18,7 +18,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     && rm -rf /var/lib/apt/lists/*
 
 # Copy packaging files and package source first to leverage Docker layer caching
-COPY pyproject.toml .
+COPY pyproject.toml README.md .
 COPY ai_evaluation/ ./ai_evaluation/
 
 # Install the package and its dependencies
