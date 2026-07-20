@@ -217,3 +217,29 @@ def test_missing_pricing_warning(caplog):
             "Pricing config is missing for model" in record.message
             for record in caplog.records
         )
+
+
+def test_judge_initialization_failure_returns_sentinel():
+    evaluator = AIEvaluator()
+    tc = TestCase(name="dummy", prompt="dummy", expectations=["dummy"])
+
+    with patch.object(run_eval_module, "get_model", side_effect=ValueError("Failed to initialize judge model")):
+        score, reasoning = evaluator.judge_response(tc, "dummy response")
+        assert score == -1.0
+        assert "Judge model error: Failed to initialize judge model" in reasoning
+
+
+def test_simulated_pricing_warning_omission(caplog):
+    from ai_evaluation.models import SimulatedModel
+    import logging
+
+    config = {"pricing": {}}
+    model = SimulatedModel(model_name="default", config=config)
+
+    with caplog.at_level(logging.WARNING):
+        cost = model._calculate_cost(100, 200)
+        assert cost == 0.0
+        assert not any(
+            "Pricing config is missing for model" in record.message
+            for record in caplog.records
+        )
