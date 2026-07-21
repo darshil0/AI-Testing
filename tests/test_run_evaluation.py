@@ -338,9 +338,11 @@ def test_model_adapters_mocked():
     mock_anthropic_resp.usage.input_tokens = 10
     mock_anthropic_resp.usage.output_tokens = 20
 
-    with patch("ai_evaluation.models.ANTHROPIC_AVAILABLE", True), patch(
-        "os.getenv", return_value="fake_key"
-    ), patch("ai_evaluation.models.Anthropic", create=True) as mock_anth_class:
+    with (
+        patch("ai_evaluation.models.ANTHROPIC_AVAILABLE", True),
+        patch("os.getenv", return_value="fake_key"),
+        patch("ai_evaluation.models.Anthropic", create=True) as mock_anth_class,
+    ):
         mock_client = MagicMock()
         mock_client.messages.create.return_value = mock_anthropic_resp
         mock_anth_class.return_value = mock_client
@@ -358,10 +360,11 @@ def test_model_adapters_mocked():
     )
     mock_gemini_resp.usage_metadata = None
 
-    with patch("ai_evaluation.models.GEMINI_AVAILABLE", True), patch(
-        "os.getenv", return_value="fake_key"
-    ), patch("google.generativeai.GenerativeModel", create=True), patch(
-        "google.generativeai.configure", create=True
+    with (
+        patch("ai_evaluation.models.GEMINI_AVAILABLE", True),
+        patch("os.getenv", return_value="fake_key"),
+        patch("google.generativeai.GenerativeModel", create=True),
+        patch("google.generativeai.configure", create=True),
     ):
         model = GeminiModel("gemini-1.5-pro", config)
         model.client.generate_content.return_value = mock_gemini_resp
@@ -369,8 +372,13 @@ def test_model_adapters_mocked():
         assert "Response blocked or empty" in text
 
     # OllamaModel dict vs object response handling
-    with patch("ai_evaluation.models.OLLAMA_AVAILABLE", True), patch(
-        "ollama.chat", create=True, return_value={"message": {"content": "Ollama dict reply"}}
+    with (
+        patch("ai_evaluation.models.OLLAMA_AVAILABLE", True),
+        patch(
+            "ollama.chat",
+            create=True,
+            return_value={"message": {"content": "Ollama dict reply"}},
+        ),
     ):
         model = OllamaModel("llama3", config)
         text, _, _ = model.call("hello")
@@ -401,3 +409,53 @@ def test_analytics_generation(tmp_path):
     generate_analytics(results_path=str(results_file))
     report_file = tmp_path / "benchmark_report.png"
     assert report_file.exists()
+
+
+def test_export_formats(tmp_path):
+    import csv
+    from ai_evaluation.run_evaluation import EvaluationResult
+
+    evaluator = AIEvaluator()
+    # Mock directories to use tmp_path
+    evaluator.results_dir = tmp_path
+
+    # Set up some dummy results
+    evaluator.results = [
+        EvaluationResult(
+            test_case_name="tc_test",
+            category="Reasoning",
+            difficulty="Easy",
+            model_type="simulated:default",
+            prompt="Hello?",
+            response="Hi!",
+            duration_seconds=0.1,
+            estimated_cost=0.0,
+            judge_score=1.0,
+            judge_reasoning="Perfect response.",
+            pii_found=False,
+            pii_types=[],
+        )
+    ]
+
+    # Test JSON export
+    evaluator.export(export_format="json")
+    latest_json = tmp_path / "latest_results.json"
+    assert latest_json.exists()
+
+    # Verify we also have a run_*.json
+    json_runs = list(tmp_path.glob("run_*.json"))
+    assert len(json_runs) == 1
+    with open(json_runs[0], "r", encoding="utf-8") as f:
+        data = json.load(f)
+        assert data[0]["test_case_name"] == "tc_test"
+
+    # Test CSV export
+    evaluator.export(export_format="csv")
+    csv_runs = list(tmp_path.glob("run_*.csv"))
+    assert len(csv_runs) == 1
+    with open(csv_runs[0], "r", encoding="utf-8", newline="") as f:
+        reader = csv.DictReader(f)
+        rows = list(reader)
+        assert len(rows) == 1
+        assert rows[0]["test_case_name"] == "tc_test"
+        assert rows[0]["pii_types"] == "[]"

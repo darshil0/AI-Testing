@@ -474,23 +474,40 @@ MODEL RESPONSE: {response}"""
         if pii_count > 0:
             console.print(f"[bold red]⚠ PII Warnings:[/] {pii_count} responses")
 
-    def export(self) -> None:
-        """Export results to JSON files."""
+    def export(self, export_format: str = "json") -> None:
+        """Export results to files."""
         if not self.results:
             logger.warning("No results to export")
             return
 
         timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
 
-        # Export latest results for dashboard
+        # Export latest results for dashboard (always JSON so dashboard is compatible)
         latest_path = self.results_dir / "latest_results.json"
         with open(latest_path, "w", encoding="utf-8") as f:
             json.dump([r.model_dump() for r in self.results], f, indent=2)
 
         # Export a unique file for this run
-        run_path = self.results_dir / f"run_{timestamp}.json"
-        with open(run_path, "w", encoding="utf-8") as f:
-            json.dump([r.model_dump() for r in self.results], f, indent=2)
+        if export_format.lower() == "csv":
+            import csv
+
+            run_path = self.results_dir / f"run_{timestamp}.csv"
+            if self.results:
+                first_dict = self.results[0].model_dump()
+                fieldnames = list(first_dict.keys())
+                with open(run_path, "w", encoding="utf-8", newline="") as f:
+                    writer = csv.DictWriter(f, fieldnames=fieldnames)
+                    writer.writeheader()
+                    for r in self.results:
+                        row = r.model_dump()
+                        for k, v in row.items():
+                            if isinstance(v, (list, dict)):
+                                row[k] = json.dumps(v)
+                        writer.writerow(row)
+        else:
+            run_path = self.results_dir / f"run_{timestamp}.json"
+            with open(run_path, "w", encoding="utf-8") as f:
+                json.dump([r.model_dump() for r in self.results], f, indent=2)
 
         logger.info(f"Results exported to {run_path}")
         console.print(f"[green]✓[/] Results saved to: {run_path.name}")
@@ -522,6 +539,12 @@ Examples:
         help="Judge persona for evaluation",
     )
     parser.add_argument(
+        "--export-format",
+        default="json",
+        choices=["json", "csv"],
+        help="Format to export results (json or csv)",
+    )
+    parser.add_argument(
         "--config",
         default="ai_evaluation/config.yaml",
         help="Path to configuration file",
@@ -548,7 +571,7 @@ Examples:
         )
 
         evaluator.print_summary()
-        evaluator.export()
+        evaluator.export(export_format=args.export_format)
 
         console.print("\n[bold cyan]✨ Evaluation complete![/]")
         console.print("[dim]Run 'view-dashboard' for interactive dashboard[/]")

@@ -44,6 +44,9 @@ run-evaluation --models simulated:default --sequential
 
 # Specify custom configuration file path
 run-evaluation --models simulated:default --config ai_evaluation/config.yaml
+
+# Export results to CSV instead of the default JSON format
+run-evaluation --models simulated:default --export-format csv
 ```
 
 ### Results & Interactive Dashboard

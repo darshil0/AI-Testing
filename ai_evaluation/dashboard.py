@@ -139,9 +139,7 @@ def show_dashboard():
 
         # Select model secondary dropdown
         filtered_models = case_df["model_type"].unique()
-        selected_model = st.selectbox(
-            "Select model to view response", filtered_models
-        )
+        selected_model = st.selectbox("Select model to view response", filtered_models)
 
         matched_rows = case_df[case_df["model_type"] == selected_model]
         if matched_rows.empty:
