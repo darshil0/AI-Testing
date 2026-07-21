@@ -5,6 +5,20 @@ All notable changes to the AI-Testing project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.1.7] - 2026-07-21
+
+### Fixed
+
+- **Windows Console Unicode Output**: Fixed `UnicodeEncodeError: 'charmap' codec can't encode character '\U0001f916'` by automatically reconfiguring `sys.stdout` and `sys.stderr` to `utf-8` on Windows platforms prior to Rich console rendering.
+- **String-Aware JSON Extractor**: Refactored `extract_json_blocks` in `run_evaluation.py` to maintain string state (handling string quote boundaries `"` and escape sequences `\"`), ensuring `{` and `}` characters inside JSON string values do not break block extraction.
+- **Header Parsing for Text Test Cases**: Fixed `_parse_test_case` in `run_evaluation.py` so metadata headers (`Category:` / `Difficulty:`) are strictly parsed and stripped from the top header section of text files, preserving matching header text within the prompt body.
+- **Average Score Calculation**: Excluded failed judge sentinel scores (`-1.0`) when computing average scores in `print_summary()`, and added explicit counts for judge error responses.
+- **Gemini Safety Block Handling**: Added defensive `try...except ValueError` handling around `resp.text` in `GeminiModel.call` to return clear fallback messages when responses are safety-filtered.
+- **Model Adapter Robustness**: Updated `OllamaModel` to handle both dict and object response types, `AnthropicModel` to iterate over text content blocks safely, and `BaseModel._calculate_cost` to guard missing pricing subkeys with `.get()`.
+- **Dashboard Column & Selection Safety**: Added DataFrame field sanitization for missing run JSON columns and safe row selection checks before `.iloc[0]` indexing in `dashboard.py`.
+- **Analytics Seaborn Compatibility & Paths**: Fixed `sns.boxplot` deprecation warnings by passing `hue="category"` and `legend=False`, and ensured output directory creation before saving report charts.
+- **Expanded Test Coverage**: Expanded `tests/test_run_evaluation.py` with 8 new unit tests covering JSON string parsing, text headers, sentinel scores, model adapters, and analytics generation (55% code coverage).
+
 ## [2.1.6] - 2026-07-20
 
 ### Fixed
