@@ -90,7 +90,7 @@ view-dashboard
 Before cutting a release, make sure that package configuration files are synchronized and correct.
 
 ### 1. Version Number Check
-Ensure that the exact semantic version number (e.g., `2.1.6`) matches across all of the following files:
+Ensure that the exact semantic version number (e.g., `2.1.7`) matches across all of the following files:
 - [ ] `pyproject.toml` (`version = "X.Y.Z"`)
 - [ ] `ai_evaluation/__init__.py` (`__version__ = "X.Y.Z"`)
 - [ ] `tests/__init__.py` (`__version__ = "X.Y.Z"`)
@@ -109,11 +109,11 @@ When all automated and manual verification steps pass, follow this release proce
 - [ ] **Step 2**: Create a descriptive section in `CHANGELOG.md` adhering to Keep a Changelog standards.
 - [ ] **Step 3**: Tag the commit with the semantic version prefix:
   ```bash
-  git tag -a v2.1.6 -m "Release Version 2.1.6"
+  git tag -a v2.1.7 -m "Release Version 2.1.7"
   ```
 - [ ] **Step 4**: Push changes and tags to the main remote branch:
   ```bash
   git push origin main
-  git push origin v2.1.6
+  git push origin v2.1.7
   ```
 - [ ] **Step 5**: Create a draft release on GitHub, copying the relevant version changelog section. Publish the release!
