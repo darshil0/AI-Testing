@@ -1,7 +1,35 @@
 # AI-Testing Codebase Fixes - Summary
 
 ## Overview
-This document provides a comprehensive history of the issues identified, refactored, and resolved in the AI-Testing codebase, tracking the evolution of the framework from its early versions up to **Version 2.1.6**.
+This document provides a comprehensive history of the issues identified, refactored, and resolved in the AI-Testing codebase, tracking the evolution of the framework from its early versions up to **Version 2.1.7**.
+
+---
+
+## 🚀 Critical Fixes in Version 2.1.7
+
+### 1. Windows Console UTF-8 Reconfiguration
+* **Problem**: Running `run-evaluation` on Windows resulted in a fatal `UnicodeEncodeError` when rendering Rich UI components due to `cp1252` encoding defaults.
+* **Fix**: Standardized `sys.stdout` and `sys.stderr` reconfiguration to `utf-8` on Windows platforms upon package import.
+
+### 2. String-Aware JSON Block Extractor
+* **Problem**: Braces `{` and `}` appearing inside string values in JSON model responses broke block extraction.
+* **Fix**: Enhanced `extract_json_blocks` to track string boundaries and escape characters (`\"`), ignoring braces contained within string literals.
+
+### 3. Top-Level Text Metadata Header Stripping
+* **Problem**: Header regexes stripped `Category:` and `Difficulty:` lines anywhere in plain text files.
+* **Fix**: Updated `_parse_test_case` to only parse and strip metadata headers from top file lines.
+
+### 4. Sentinel Score Exclusion in Summary
+* **Problem**: Failed judge sentinel scores (`-1.0`) skewed total average score calculations downward.
+* **Fix**: Filtered out negative sentinel scores in `print_summary()` and added explicit error count metrics.
+
+### 5. Model Adapter Defensive Error Handling
+* **Problem**: Accessing blocked Gemini responses raised unhandled `ValueError` exceptions, Ollama dict/object mismatches raised attribute errors, and missing pricing keys threw `KeyError`.
+* **Fix**: Wrapped Gemini text property access, supported dict/object structures in Ollama, iterated over Anthropic text blocks, and used `.get()` fallbacks for pricing calculations.
+
+### 6. Streamlit & Analytics Robustness
+* **Problem**: Missing JSON fields crashed dashboard rendering, and Seaborn 0.13+ raised deprecation warnings on `palette` without `hue`.
+* **Fix**: Added column sanitization defaults to `dashboard.py`, added `hue="category"` and `legend=False` to `analytics.py`, and ensured report output directory creation.
 
 ---
 
