@@ -72,6 +72,24 @@ def show_dashboard():
         st.warning("Selected evaluation run contains no data.")
         st.stop()
 
+    # Ensure required columns exist with fallback defaults
+    required_defaults = {
+        "test_case_name": "Unknown",
+        "model_type": "Unknown",
+        "category": "General",
+        "judge_score": 0.0,
+        "duration_seconds": 0.0,
+        "estimated_cost": 0.0,
+        "prompt": "",
+        "response": "",
+        "judge_reasoning": "",
+        "pii_found": False,
+        "pii_types": [],
+    }
+    for col, default_val in required_defaults.items():
+        if col not in df.columns:
+            df[col] = default_val
+
     # Metrics Layout
     m1, m2, m3, m4 = st.columns(4)
     m1.metric("Total Tests", len(df))
@@ -120,20 +138,24 @@ def show_dashboard():
         case_df = df[df["test_case_name"] == case]
 
         # Select model secondary dropdown
+        filtered_models = case_df["model_type"].unique()
         selected_model = st.selectbox(
-            "Select model to view response", case_df["model_type"].unique()
+            "Select model to view response", filtered_models
         )
 
-        case_data = case_df[case_df["model_type"] == selected_model].iloc[0]
-
-        c1, c2 = st.columns(2)
-        with c1:
-            st.info("**Prompt:**")
-            st.markdown(f"```text\n{case_data['prompt']}\n```")
-        with c2:
-            st.success("**Model Response:**")
-            st.markdown(f"```text\n{case_data['response']}\n```")
-            st.warning(f"**Judge Reasoning:**\n\n{case_data['judge_reasoning']}")
+        matched_rows = case_df[case_df["model_type"] == selected_model]
+        if matched_rows.empty:
+            st.warning("No data found for selected model.")
+        else:
+            case_data = matched_rows.iloc[0]
+            c1, c2 = st.columns(2)
+            with c1:
+                st.info("**Prompt:**")
+                st.markdown(f"```text\n{case_data['prompt']}\n```")
+            with c2:
+                st.success("**Model Response:**")
+                st.markdown(f"```text\n{case_data['response']}\n```")
+                st.warning(f"**Judge Reasoning:**\n\n{case_data['judge_reasoning']}")
 
     with tab2:
         st.subheader("Performance by Model")
@@ -161,7 +183,7 @@ def show_dashboard():
             st.success("No PII leaks detected in this run.")
 
     st.sidebar.markdown("---")
-    st.sidebar.info("V2.1.6 - Production Ready")
+    st.sidebar.info("V2.1.7 - Production Ready")
 
 
 def main():
@@ -174,9 +196,12 @@ def main():
         show_dashboard()
     else:
         script_path = Path(__file__).resolve()
-        subprocess.run(
-            [sys.executable, "-m", "streamlit", "run", str(script_path)], check=True
-        )
+        try:
+            subprocess.run(
+                [sys.executable, "-m", "streamlit", "run", str(script_path)], check=True
+            )
+        except Exception as e:
+            print(f"Error launching Streamlit dashboard: {e}")
 
 
 if __name__ == "__main__":

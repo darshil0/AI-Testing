@@ -8,9 +8,17 @@ from pathlib import Path
 from concurrent.futures import ThreadPoolExecutor
 from typing import List, Dict, Any, Tuple
 
+import sys
 import yaml
 from dotenv import load_dotenv
 from pydantic import BaseModel, Field
+
+# Reconfigure sys.stdout and sys.stderr to use utf-8 on Windows
+if sys.platform.startswith("win"):
+    if hasattr(sys.stdout, "reconfigure"):
+        sys.stdout.reconfigure(encoding="utf-8")
+    if hasattr(sys.stderr, "reconfigure"):
+        sys.stderr.reconfigure(encoding="utf-8")
 
 # Rich UI imports
 from rich.console import Console
@@ -50,7 +58,7 @@ console = Console()
 
 
 def extract_json_blocks(text: str) -> List[str]:
-    """Find all potential JSON object blocks in text using balanced braces."""
+    """Find all potential JSON object blocks in text using balanced braces, ignoring braces inside strings."""
     blocks = []
     i = 0
     n = len(text)
@@ -60,16 +68,28 @@ def extract_json_blocks(text: str) -> List[str]:
             break
 
         count = 0
+        in_string = False
+        escaped = False
         end_idx = -1
         for j in range(start_idx, n):
             char = text[j]
-            if char == "{":
-                count += 1
-            elif char == "}":
-                count -= 1
-                if count == 0:
-                    end_idx = j
-                    break
+            if in_string:
+                if escaped:
+                    escaped = False
+                elif char == "\\":
+                    escaped = True
+                elif char == '"':
+                    in_string = False
+            else:
+                if char == '"':
+                    in_string = True
+                elif char == "{":
+                    count += 1
+                elif char == "}":
+                    count -= 1
+                    if count == 0:
+                        end_idx = j
+                        break
         if end_idx != -1:
             blocks.append(text[start_idx : end_idx + 1])
             i = end_idx + 1
@@ -122,11 +142,15 @@ class AIEvaluator:
         # Resolve paths relative to config location
         config_dir = Path(config_path).parent
 
-        self.test_cases_dir = Path(self.config["directories"]["test_cases"])
+        directories = self.config.get("directories", {})
+        test_cases_path = directories.get("test_cases", "test_cases")
+        results_path = directories.get("results", "results")
+
+        self.test_cases_dir = Path(test_cases_path)
         if not self.test_cases_dir.is_absolute():
             self.test_cases_dir = config_dir / self.test_cases_dir
 
-        self.results_dir = Path(self.config["directories"]["results"])
+        self.results_dir = Path(results_path)
         if not self.results_dir.is_absolute():
             self.results_dir = config_dir / self.results_dir
 
@@ -262,26 +286,36 @@ MODEL RESPONSE: {response}"""
             with open(file_path, "r", encoding="utf-8") as f:
                 content = f.read()
 
-            # Parse headers - anchored strictly to line start using multiline flag
-            category_match = re.search(
-                r"^Category:\s*(.*)", content, re.IGNORECASE | re.MULTILINE
-            )
-            difficulty_match = re.search(
-                r"^Difficulty:\s*(.*)", content, re.IGNORECASE | re.MULTILINE
-            )
+            lines = content.splitlines()
+            category = "General"
+            difficulty = "Medium"
+            header_line_count = 0
 
-            category = category_match.group(1).strip() if category_match else "General"
-            difficulty = (
-                difficulty_match.group(1).strip() if difficulty_match else "Medium"
-            )
+            for line in lines:
+                stripped = line.strip()
+                if not stripped:
+                    if header_line_count > 0:
+                        header_line_count += 1
+                        break
+                    else:
+                        header_line_count += 1
+                        continue
 
-            # Strip header lines (Category/Difficulty) so only the body is used as the prompt
-            prompt_body = re.sub(
-                r"^(Category|Difficulty):\s*.*\n?",
-                "",
-                content,
-                flags=re.IGNORECASE | re.MULTILINE,
-            ).strip()
+                cat_m = re.match(r"^Category:\s*(.*)", stripped, re.IGNORECASE)
+                diff_m = re.match(r"^Difficulty:\s*(.*)", stripped, re.IGNORECASE)
+
+                if cat_m:
+                    category = cat_m.group(1).strip()
+                    header_line_count += 1
+                elif diff_m:
+                    difficulty = diff_m.group(1).strip()
+                    header_line_count += 1
+                else:
+                    break
+
+            prompt_body = "\n".join(lines[header_line_count:]).strip()
+            if not prompt_body:
+                prompt_body = content.strip()
 
             return TestCase(
                 name=file_path.stem,
@@ -418,12 +452,24 @@ MODEL RESPONSE: {response}"""
 
         console.print(table)
 
-        # Summary stats
-        avg_score = sum(r.judge_score for r in self.results) / len(self.results)
+        # Summary stats - filter out sentinel error scores (< 0.0) for avg_score
+        valid_scores = [r.judge_score for r in self.results if r.judge_score >= 0.0]
+        failed_judge_count = sum(1 for r in self.results if r.judge_score < 0.0)
+
+        if valid_scores:
+            avg_score = sum(valid_scores) / len(valid_scores)
+            console.print(f"\n[bold]Average Score:[/] {avg_score:.3f}")
+        else:
+            console.print("\n[bold]Average Score:[/] N/A (No valid judge scores)")
+
+        if failed_judge_count > 0:
+            console.print(
+                f"[bold yellow]⚠ Judge Errors:[/] {failed_judge_count} responses failed judging"
+            )
+
         total_cost = sum(r.estimated_cost for r in self.results)
         pii_count = sum(1 for r in self.results if r.pii_found)
 
-        console.print(f"\n[bold]Average Score:[/] {avg_score:.3f}")
         console.print(f"[bold]Total Cost:[/] ${total_cost:.4f}")
         if pii_count > 0:
             console.print(f"[bold red]⚠ PII Warnings:[/] {pii_count} responses")
@@ -454,7 +500,7 @@ def main() -> None:
     import argparse
 
     parser = argparse.ArgumentParser(
-        description="AI Evaluation Framework V2.1.6",
+        description="AI Evaluation Framework V2.1.7",
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog="""
 Examples:
@@ -492,7 +538,7 @@ Examples:
         evaluator = AIEvaluator(config_path=args.config)
         console.print(
             Panel.fit(
-                f"🤖 AI Benchmark V2.1.6\nPersona: {args.persona}\nModels: {', '.join(args.models)}",
+                f"🤖 AI Benchmark V2.1.7\nPersona: {args.persona}\nModels: {', '.join(args.models)}",
                 style="bold green",
             )
         )

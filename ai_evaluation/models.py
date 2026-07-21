@@ -55,8 +55,12 @@ class BaseModel:
             prices = {"input": 0.0, "output": 0.0}
         else:
             prices = pricing_config[self.model_name]
-        return (input_tokens / 1_000_000 * prices["input"]) + (
-            output_tokens / 1_000_000 * prices["output"]
+
+        input_price = prices.get("input", 0.0) if isinstance(prices, dict) else 0.0
+        output_price = prices.get("output", 0.0) if isinstance(prices, dict) else 0.0
+
+        return (input_tokens / 1_000_000 * input_price) + (
+            output_tokens / 1_000_000 * output_price
         )
 
 
@@ -118,7 +122,15 @@ class AnthropicModel(BaseModel):
             ),
             messages=[{"role": "user", "content": prompt}],
         )
-        text = resp.content[0].text if resp.content else ""
+        text = ""
+        if hasattr(resp, "content") and resp.content:
+            text_blocks = []
+            for block in resp.content:
+                if getattr(block, "type", "text") == "text" and hasattr(block, "text"):
+                    text_blocks.append(block.text)
+                elif isinstance(block, str):
+                    text_blocks.append(block)
+            text = "".join(text_blocks)
         input_tokens = getattr(resp.usage, "input_tokens", 0)
         output_tokens = getattr(resp.usage, "output_tokens", 0)
         return text, input_tokens, output_tokens
@@ -151,7 +163,12 @@ class GeminiModel(BaseModel):
                 ),
             },
         )
-        text = getattr(resp, "text", "") or ""
+        try:
+            text = getattr(resp, "text", "") or ""
+        except ValueError as ve:
+            logger.warning(f"Gemini response text unavailable (safety or empty): {ve}")
+            text = "Response blocked or empty due to safety settings."
+
         usage = getattr(resp, "usage_metadata", None)
         if usage is not None:
             input_tokens = getattr(usage, "prompt_token_count", 0)
@@ -178,7 +195,14 @@ class OllamaModel(BaseModel):
             model=self.model_name,
             messages=[{"role": "user", "content": prompt}],
         )
-        content = resp.message.content
+        if isinstance(resp, dict):
+            content = resp.get("message", {}).get("content", "")
+        else:
+            msg = getattr(resp, "message", None)
+            if isinstance(msg, dict):
+                content = msg.get("content", "")
+            else:
+                content = getattr(msg, "content", "") or ""
         # Heuristic for local models
         return content, len(prompt) // 4, len(content) // 4
 

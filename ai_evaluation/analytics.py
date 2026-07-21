@@ -101,7 +101,15 @@ def generate_analytics(results_path=None) -> None:
     axes[0, 1].set_xlabel("Duration (seconds)")
 
     # 3. Category performance
-    sns.boxplot(x="category", y="judge_score", data=df, ax=axes[1, 0], palette="Set2")
+    sns.boxplot(
+        x="category",
+        y="judge_score",
+        data=df,
+        ax=axes[1, 0],
+        hue="category",
+        palette="Set2",
+        legend=False,
+    )
     axes[1, 0].set_title("Performance Distribution by Category", fontweight="bold")
     axes[1, 0].tick_params(axis="x", rotation=30)
 
@@ -123,6 +131,7 @@ def generate_analytics(results_path=None) -> None:
 
     # Save Output
     output_path = results_file.parent / "benchmark_report.png"
+    output_path.parent.mkdir(parents=True, exist_ok=True)
     plt.savefig(output_path, dpi=300)  # Higher DPI for "publication-ready" charts
     plt.close(fig)
     print(f"✅ Analytics report saved to: {output_path}")
