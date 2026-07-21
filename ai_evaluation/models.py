@@ -48,9 +48,10 @@ class BaseModel:
     def _calculate_cost(self, input_tokens: int, output_tokens: int) -> float:
         pricing_config = self.config.get("pricing", {})
         if self.model_name not in pricing_config:
-            logger.warning(
-                f"Pricing config is missing for model '{self.model_name}'. Cost will be set to $0.0."
-            )
+            if self.model_name != "default":
+                logger.warning(
+                    f"Pricing config is missing for model '{self.model_name}'. Cost will be set to $0.0."
+                )
             prices = {"input": 0.0, "output": 0.0}
         else:
             prices = pricing_config[self.model_name]

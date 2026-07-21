@@ -223,7 +223,11 @@ def test_judge_initialization_failure_returns_sentinel():
     evaluator = AIEvaluator()
     tc = TestCase(name="dummy", prompt="dummy", expectations=["dummy"])
 
-    with patch.object(run_eval_module, "get_model", side_effect=ValueError("Failed to initialize judge model")):
+    with patch.object(
+        run_eval_module,
+        "get_model",
+        side_effect=ValueError("Failed to initialize judge model"),
+    ):
         score, reasoning = evaluator.judge_response(tc, "dummy response")
         assert score == -1.0
         assert "Judge model error: Failed to initialize judge model" in reasoning

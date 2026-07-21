@@ -1,7 +1,7 @@
-# Migration Guide: Upgrading to AI-Testing Version 2.1.5
+# Migration Guide: Upgrading to AI-Testing Version 2.1.6
 
 ## Introduction
-This guide provides instructions and details for upgrading your AI-Testing environment from previous legacy releases (such as `v2.0.0` or `v2.1.0`) to the latest enterprise-ready **Version 2.1.5**.
+This guide provides instructions and details for upgrading your AI-Testing environment from previous legacy releases (such as `v2.0.0` or `v2.1.0`) to the latest enterprise-ready **Version 2.1.6**.
 
 ---
 
@@ -28,7 +28,7 @@ python -m pytest
 
 ---
 
-## 🚀 Key Evolutionary Milestones (What's New in v2.1.5)
+## 🚀 Key Evolutionary Milestones (What's New in v2.1.6)
 
 ### 1. Unified Packaging & Console Scripts
 * **Legacy Behavior**: Invocations required executing scripts directly by path (e.g., `python ai_evaluation/run_evaluation.py`).
@@ -52,13 +52,13 @@ run-evaluation --models simulated:default --export-format json
 ```
 
 ### 3. Streamlit Lazy Loading
-Previously, running any evaluation or test on a machine without the Streamlit library installed resulted in immediate crashes during package import. In Version 2.1.5, Streamlit is lazily loaded upon execution of `view-dashboard`. Standard evaluation commands run flawlessly even in minimalist environments without Streamlit.
+Previously, running any evaluation or test on a machine without the Streamlit library installed resulted in immediate crashes during package import. In Version 2.1.6, Streamlit is lazily loaded upon execution of `view-dashboard`. Standard evaluation commands run flawlessly even in minimalist environments without Streamlit.
 
 ---
 
 ## 💻 Code and CLI Invocation Comparison
 
-| Feature / Action | Legacy Syntax (v2.0.0) | Modern Syntax (v2.1.5) |
+| Feature / Action | Legacy Syntax (v2.0.0) | Modern Syntax (v2.1.6) |
 | :--- | :--- | :--- |
 | **Local Installation** | `pip install -r requirements.txt` | `pip install -e .` or `pip install -e ".[dev]"` |
 | **Run Default Simulated Suite** | `python run_evaluation.py --models simulated:default` | `run-evaluation --models simulated:default` |
@@ -115,7 +115,7 @@ factual_accuracy.txt
 
 ### Issue 2: Streamlit Dashboard Crashes on Interrupted Runs
 * **Cause**: Interrupted runs can sometimes write empty or incomplete JSON runs to your results folder.
-* **Resolution**: In Version 2.1.5, the dashboard is resilient and ignores corrupted files. If you are on an older version, remove any empty or corrupted files in your results directory:
+* **Resolution**: In Version 2.1.6, the dashboard is resilient and ignores corrupted files. If you are on an older version, remove any empty or corrupted files in your results directory:
   ```bash
   find ai_evaluation/results/ -size 0 -delete
   ```
