@@ -118,6 +118,9 @@ run-evaluation --models openai:gpt-4o
 # Compare multiple models side-by-side
 run-evaluation --models openai:gpt-4o anthropic:claude-sonnet-3.5
 
+# Run and consolidate outputs as a CSV format file
+run-evaluation --models simulated:default --export-format csv
+
 # Launch the interactive Streamlit dashboard
 view-dashboard
 
