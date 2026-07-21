@@ -161,7 +161,7 @@ def show_dashboard():
             st.success("No PII leaks detected in this run.")
 
     st.sidebar.markdown("---")
-    st.sidebar.info("V2.1.5 - Production Ready")
+    st.sidebar.info("V2.1.6 - Production Ready")
 
 
 def main():

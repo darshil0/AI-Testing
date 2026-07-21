@@ -1,9 +1,16 @@
 # AI-Testing Codebase Fixes - Summary
 
 ## Overview
-This document provides a comprehensive history of the issues identified, refactored, and resolved in the AI-Testing codebase, tracking the evolution of the framework from its early versions up to **Version 2.1.5**.
+This document provides a comprehensive history of the issues identified, refactored, and resolved in the AI-Testing codebase, tracking the evolution of the framework from its early versions up to **Version 2.1.6**.
 
 ---
+
+## 🚀 Critical Fixes in Version 2.1.6
+
+### 1. Robust Simulated Cost Tracking and Warnings
+* **Problem**: When using the simulated model name `"default"` (i.e. `simulated:default`), pricing is not explicitly configured in `config.yaml` for `"default"`. Calculating costs triggered a pricing warning: `Pricing config is missing for model 'default'. Cost will be set to $0.0.`. This cluttered output for standard local-only evaluations and broke test assertions.
+* **Fix**: Suppressed pricing warnings for the simulated model `"default"`.
+* **Impact**: Cleaner logs and reliable simulated test runs.
 
 ## 🚀 Critical Fixes in Version 2.1.5
 
@@ -102,4 +109,5 @@ This document provides a comprehensive history of the issues identified, refacto
 - **Version 1.0.0**: Basic LLM-as-a-Judge and initial CLI progress metrics.
 - **Version 2.0.0**: Architectural overhaul isolating models to `models.py` and centralizing configurations into `config.yaml`.
 - **Version 2.1.0**: Python packaging conversion, adding console entry scripts (`run-evaluation`, `view-dashboard`).
+- **Version 2.1.6**: Suppressed pricing config warning for `default` simulated model name, synchronized package and documentation version strings to 2.1.6.
 - **Version 2.1.5**: Version synchronization, brace JSON parsing, lazy-loaded dashboard, robust testing, and optimized docker builds.
