@@ -1,12 +1,26 @@
 import json
 from pathlib import Path
 
-import matplotlib.pyplot as plt
-import pandas as pd
-import seaborn as sns
+# Optional analytics imports guarded at import time
+try:
+    import matplotlib.pyplot as plt
+    import pandas as pd
+    import seaborn as sns
+
+    ANALYTICS_AVAILABLE = True
+except ImportError:
+    plt = None  # type: ignore
+    pd = None  # type: ignore
+    sns = None  # type: ignore
+    ANALYTICS_AVAILABLE = False
 
 
 def generate_analytics(results_path=None, config_path=None) -> None:
+    if not ANALYTICS_AVAILABLE:
+        raise RuntimeError(
+            "Analytics dependencies (matplotlib, seaborn, pandas) are not installed.\n"
+            "Install them with: pip install 'ai-evaluation-framework[dashboard]'"
+        )
     base_dir = Path(__file__).parent.parent
 
     if results_path is None:

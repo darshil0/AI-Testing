@@ -101,6 +101,10 @@ def test_acceptance_5_packaging_and_wheel():
 
 def test_acceptance_6_config_path_propagation(tmp_path):
     """6. Config path: analytics and dashboard honor custom config results directory."""
+    pytest.importorskip("matplotlib")
+    pytest.importorskip("pandas")
+    pytest.importorskip("seaborn")
+
     custom_results = tmp_path / "custom_results_dir"
     custom_results.mkdir()
 

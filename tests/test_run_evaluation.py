@@ -400,6 +400,10 @@ def test_model_adapters_mocked():
 
 
 def test_analytics_generation(tmp_path):
+    pytest.importorskip("matplotlib")
+    pytest.importorskip("pandas")
+    pytest.importorskip("seaborn")
+
     from ai_evaluation.analytics import generate_analytics
 
     sample_results = [
