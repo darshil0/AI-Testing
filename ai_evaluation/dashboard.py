@@ -31,6 +31,44 @@ def _check_dashboard_dependencies():
         )
 
 
+def _normalize_results_dataframe(df):
+    """Normalize legacy and current result data for dashboard rendering."""
+    if df.empty:
+        return df
+
+    if "score" not in df.columns and "judge_score" in df.columns:
+        df["score"] = pd.to_numeric(df["judge_score"], errors="coerce")
+
+    if "judge_score" not in df.columns and "score" in df.columns:
+        df["judge_score"] = df["score"]
+
+    if "estimated_cost" not in df.columns and "cost" in df.columns:
+        df["estimated_cost"] = pd.to_numeric(df["cost"], errors="coerce").fillna(0.0)
+
+    if "duration_seconds" not in df.columns and "duration" in df.columns:
+        df["duration_seconds"] = pd.to_numeric(df["duration"], errors="coerce")
+
+    if "pii_found" not in df.columns:
+        df["pii_found"] = False
+    if "pii_types" not in df.columns:
+        df["pii_types"] = [[] for _ in range(len(df))]
+
+    if "status" not in df.columns:
+        df["status"] = "success"
+
+    if "score" in df.columns:
+        df["score"] = pd.to_numeric(df["score"], errors="coerce")
+        df.loc[df["score"] < 0, "score"] = None
+
+    if "estimated_cost" in df.columns:
+        df["estimated_cost"] = pd.to_numeric(df["estimated_cost"], errors="coerce").fillna(0.0)
+
+    if "duration_seconds" in df.columns:
+        df["duration_seconds"] = pd.to_numeric(df["duration_seconds"], errors="coerce")
+
+    return df
+
+
 def show_dashboard():
     _check_dashboard_dependencies()
     st.set_page_config(page_title="AI Benchmark Dashboard", layout="wide")
@@ -38,10 +76,8 @@ def show_dashboard():
     st.title("🤖 AI-Testing Benchmark Dashboard")
     st.markdown("Interactive analysis of your model evaluation runs.")
 
-    # Get the directory of the currently running script
     script_dir = Path(__file__).parent
 
-    # Read config from query params or CLI or default config.yaml
     custom_config_arg = st.sidebar.text_input(
         "Config File Path", value="ai_evaluation/config.yaml"
     )
@@ -56,9 +92,10 @@ def show_dashboard():
 
             with open(config_path, "r", encoding="utf-8") as f:
                 config = safe_yaml_load(f)
-                results_dir_name = config.get("directories", {}).get(
-                    "results", "results"
-                )
+                if isinstance(config, dict):
+                    results_dir_name = config.get("directories", {}).get(
+                        "results", "results"
+                    )
         except Exception as e:
             st.sidebar.warning(f"Could not load config: {e}")
 
@@ -66,7 +103,6 @@ def show_dashboard():
     if not results_dir.is_absolute():
         results_dir = config_path.parent / results_dir
 
-    # Load available runs
     run_files = glob.glob(str(results_dir / "run_*.json"))
     run_files.sort(reverse=True)
 
@@ -76,7 +112,6 @@ def show_dashboard():
         )
         st.stop()
 
-    # Sidebar for run selection
     st.sidebar.header("Settings")
     selected_run = st.sidebar.selectbox(
         "Select Evaluation Run", run_files, format_func=lambda x: Path(x).name
@@ -85,7 +120,7 @@ def show_dashboard():
     try:
         with open(selected_run, "r", encoding="utf-8") as f:
             data = json.load(f)
-            df = pd.DataFrame(data)
+            df = _normalize_results_dataframe(pd.DataFrame(data))
     except json.JSONDecodeError as e:
         st.error(f"Failed to load run file due to invalid JSON: {e}")
         st.stop()
@@ -97,7 +132,6 @@ def show_dashboard():
         st.warning("Selected evaluation run contains no data.")
         st.stop()
 
-    # Ensure required columns exist with fallback defaults
     required_defaults = {
         "test_case_name": "Unknown",
         "model_type": "Unknown",
@@ -117,16 +151,14 @@ def show_dashboard():
         if col not in df.columns:
             df[col] = default_val
 
-    # Standardize score column from score or judge_score
     if "score" in df.columns:
         df["score"] = pd.to_numeric(df["score"], errors="coerce")
     elif "judge_score" in df.columns:
         df["score"] = pd.to_numeric(df["judge_score"], errors="coerce")
-        # Sentinels from legacy formats (< 0) become None
         df.loc[df["score"] < 0, "score"] = None
 
-    valid_score_df = df[df["status"].isin(["success"]) & df["score"].notna()]
-    valid_dur_df = df[df["duration_seconds"].notna()]
+    valid_score_df = df[df["status"].isin(["success"]) & df["score"].notna()].copy()
+    valid_dur_df = df[df["duration_seconds"].notna()].copy()
 
     avg_score_str = (
         f"{valid_score_df['score'].mean():.2f}"
@@ -139,7 +171,6 @@ def show_dashboard():
         else "N/A"
     )
 
-    # Metrics Layout
     m1, m2, m3, m4 = st.columns(4)
     m1.metric("Total Tests", len(df))
     m2.metric("Avg Score (Valid Successes)", avg_score_str)
@@ -152,21 +183,18 @@ def show_dashboard():
             f"⚠️ {len(non_success_df)} test case(s) failed, errored, or were invalid in this run."
         )
 
-    # PII Warning
     pii_count = df["pii_found"].sum()
     if pii_count > 0:
         st.error(
             f"⚠️ Security Alert: {pii_count} responses contained potential PII leaks!"
         )
 
-    # Tabs
     tab1, tab2, tab3 = st.tabs(
         ["📊 Detailed Results", "📈 Model Comparisons", "🛡️ Security & PII"]
     )
 
     with tab1:
         st.subheader("Run Overview")
-        # Display styled dataframe
         display_cols = [
             "test_case_name",
             "model_type",
@@ -188,10 +216,7 @@ def show_dashboard():
             "Select a test case to inspect", df["test_case_name"].unique()
         )
 
-        # Filter dataframe by selected test case
         case_df = df[df["test_case_name"] == case]
-
-        # Select model secondary dropdown
         filtered_models = case_df["model_type"].unique()
         selected_model = st.selectbox("Select model to view response", filtered_models)
 
@@ -219,7 +244,6 @@ def show_dashboard():
             horizontal=True,
         )
 
-        # Prepare Aggregated Data filtering non-valid entries for score
         if chart_type == "Avg Score":
             if valid_score_df.empty:
                 st.warning("No valid scores available to chart.")
@@ -271,3 +295,768 @@ def main():
 
 if __name__ == "__main__":
     main()
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+n
+
+
+
+a
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+n
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+n
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+n
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+n
+
+
+
+
+
+
+
+
+n
+
+
+
+
+n
+
+
+
+
+n
+
+
+
+
+n
+
+
+
+n
+
+
+n
+
+
+
+
