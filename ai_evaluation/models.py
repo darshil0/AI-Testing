@@ -1,8 +1,8 @@
 import logging
 import os
-from typing import Tuple, Dict, Any
+from typing import Any, Dict, Optional, Tuple
 
-from tenacity import retry, stop_after_attempt, wait_exponential
+from tenacity import retry, retry_if_exception, stop_after_attempt, wait_exponential
 
 # Optional imports for real models
 try:
@@ -20,11 +20,21 @@ except ImportError:
     ANTHROPIC_AVAILABLE = False
 
 try:
-    import google.generativeai as genai
+    from google import genai
+    from google.genai import types
 
-    GEMINI_AVAILABLE = True
+    GEMINI_GENAI_AVAILABLE = True
 except ImportError:
-    GEMINI_AVAILABLE = False
+    GEMINI_GENAI_AVAILABLE = False
+
+try:
+    import google.generativeai as genai_legacy
+
+    GEMINI_LEGACY_AVAILABLE = True
+except ImportError:
+    GEMINI_LEGACY_AVAILABLE = False
+
+GEMINI_AVAILABLE = GEMINI_GENAI_AVAILABLE or GEMINI_LEGACY_AVAILABLE
 
 try:
     import ollama
@@ -45,16 +55,22 @@ class BaseModel:
         """Return (response_text, input_tokens, output_tokens)."""
         raise NotImplementedError
 
-    def _calculate_cost(self, input_tokens: int, output_tokens: int) -> float:
+    def _calculate_cost(self, input_tokens: int, output_tokens: int) -> Optional[float]:
         pricing_config = self.config.get("pricing", {})
-        if self.model_name not in pricing_config:
-            if self.model_name != "default":
-                logger.warning(
-                    f"Pricing config is missing for model '{self.model_name}'. Cost will be set to $0.0."
-                )
-            prices = {"input": 0.0, "output": 0.0}
-        else:
+        provider_name = getattr(self, "provider_name", "unknown")
+
+        # Key lookup precedence: "provider:model_name", "model_name"
+        full_key = f"{provider_name}:{self.model_name}"
+        if full_key in pricing_config:
+            prices = pricing_config[full_key]
+        elif self.model_name in pricing_config:
             prices = pricing_config[self.model_name]
+        else:
+            if self.model_name != "default" and provider_name != "simulated":
+                logger.warning(
+                    f"Pricing config missing for provider '{provider_name}', model '{self.model_name}'. Cost set to unknown (None)."
+                )
+            return None
 
         input_price = prices.get("input", 0.0) if isinstance(prices, dict) else 0.0
         output_price = prices.get("output", 0.0) if isinstance(prices, dict) else 0.0
@@ -64,13 +80,54 @@ class BaseModel:
         )
 
 
+def is_transient_error(exception: Exception) -> bool:
+    """Return True if exception is transient (network timeout, rate limit, 5xx error)."""
+    exc_type = type(exception).__name__
+    exc_msg = str(exception).lower()
+
+    if any(
+        term in exc_msg
+        for term in [
+            "api_key",
+            "unauthorized",
+            "authentication",
+            "invalid_request",
+            "not_found",
+            "blocked by safety",
+            "safety settings",
+        ]
+    ):
+        return False
+
+    status_code = getattr(exception, "status_code", None) or getattr(
+        exception, "code", None
+    )
+    if isinstance(status_code, int):
+        if status_code in [429, 500, 502, 503, 504]:
+            return True
+        if status_code in [400, 401, 403, 404]:
+            return False
+
+    if any(
+        term in exc_type.lower()
+        for term in ["timeout", "connection", "rate", "server", "unavailable"]
+    ):
+        return True
+
+    return False
+
+
 class SimulatedModel(BaseModel):
+    provider_name = "simulated"
+
     def call(self, prompt: str) -> Tuple[str, int, int]:
         # Simple deterministic stub for local/dev runs
-        return "Simulated response.", 10, 5
+        return "Simulated response.", len(prompt) // 4, 5
 
 
 class OpenAIModel(BaseModel):
+    provider_name = "openai"
+
     def __init__(self, model_name: str, config: Dict[str, Any]) -> None:
         super().__init__(model_name, config)
         api_key = os.getenv("OPENAI_API_KEY")
@@ -79,20 +136,32 @@ class OpenAIModel(BaseModel):
         self.client = OpenAI(api_key=api_key)
 
     @retry(
+        retry=retry_if_exception(is_transient_error),
         stop=stop_after_attempt(3),
-        wait=wait_exponential(multiplier=1, min=4, max=10),
+        wait=wait_exponential(multiplier=1, min=2, max=10),
+        reraise=True,
     )
     def call(self, prompt: str) -> Tuple[str, int, int]:
-        resp = self.client.chat.completions.create(
-            model=self.model_name,
-            messages=[{"role": "user", "content": prompt}],
-            max_tokens=self.config.get("default_model_params", {}).get(
-                "max_tokens", self.config.get("max_tokens", 2000)
-            ),
-            temperature=self.config.get("default_model_params", {}).get(
-                "temperature", self.config.get("temperature", 0.7)
-            ),
+        max_tok = self.config.get("default_model_params", {}).get(
+            "max_tokens", self.config.get("max_tokens", 2000)
         )
+        temp = self.config.get("default_model_params", {}).get(
+            "temperature", self.config.get("temperature", 0.7)
+        )
+
+        params: Dict[str, Any] = {
+            "model": self.model_name,
+            "messages": [{"role": "user", "content": prompt}],
+        }
+
+        # Handle OpenAI reasoning models (o1, o3-mini) which do not support temperature or max_tokens
+        if self.model_name.startswith(("o1", "o3")):
+            params["max_completion_tokens"] = max_tok
+        else:
+            params["max_tokens"] = max_tok
+            params["temperature"] = temp
+
+        resp = self.client.chat.completions.create(**params)
         content = resp.choices[0].message.content or ""
         input_tokens = getattr(resp.usage, "prompt_tokens", 0)
         output_tokens = getattr(resp.usage, "completion_tokens", 0)
@@ -100,6 +169,8 @@ class OpenAIModel(BaseModel):
 
 
 class AnthropicModel(BaseModel):
+    provider_name = "anthropic"
+
     def __init__(self, model_name: str, config: Dict[str, Any]) -> None:
         super().__init__(model_name, config)
         api_key = os.getenv("ANTHROPIC_API_KEY")
@@ -108,8 +179,10 @@ class AnthropicModel(BaseModel):
         self.client = Anthropic(api_key=api_key)
 
     @retry(
+        retry=retry_if_exception(is_transient_error),
         stop=stop_after_attempt(3),
-        wait=wait_exponential(multiplier=1, min=4, max=10),
+        wait=wait_exponential(multiplier=1, min=2, max=10),
+        reraise=True,
     )
     def call(self, prompt: str) -> Tuple[str, int, int]:
         resp = self.client.messages.create(
@@ -137,74 +210,139 @@ class AnthropicModel(BaseModel):
 
 
 class GeminiModel(BaseModel):
+    provider_name = "gemini"
+
     def __init__(self, model_name: str, config: Dict[str, Any]) -> None:
         super().__init__(model_name, config)
         api_key = os.getenv("GOOGLE_API_KEY")
         if not GEMINI_AVAILABLE or not api_key:
             raise ValueError(
-                "Google API key missing or google-generativeai not installed."
+                "Google API key missing or google-genai / google-generativeai not installed."
             )
-        genai.configure(api_key=api_key)
-        self.client = genai.GenerativeModel(self.model_name)
+        if GEMINI_GENAI_AVAILABLE:
+            self.client = genai.Client(api_key=api_key)
+            self.use_new_sdk = True
+        else:
+            genai_legacy.configure(api_key=api_key)
+            self.client = genai_legacy.GenerativeModel(self.model_name)
+            self.use_new_sdk = False
 
     @retry(
+        retry=retry_if_exception(is_transient_error),
         stop=stop_after_attempt(3),
-        wait=wait_exponential(multiplier=1, min=4, max=10),
+        wait=wait_exponential(multiplier=1, min=2, max=10),
+        reraise=True,
     )
     def call(self, prompt: str) -> Tuple[str, int, int]:
-        resp = self.client.generate_content(
-            prompt,
-            generation_config={
-                "max_output_tokens": self.config.get("default_model_params", {}).get(
-                    "max_tokens", self.config.get("max_tokens", 2000)
-                ),
-                "temperature": self.config.get("default_model_params", {}).get(
-                    "temperature", self.config.get("temperature", 0.7)
-                ),
-            },
+        max_tok = self.config.get("default_model_params", {}).get(
+            "max_tokens", self.config.get("max_tokens", 2000)
         )
-        try:
-            text = getattr(resp, "text", "") or ""
-        except ValueError as ve:
-            logger.warning(f"Gemini response text unavailable (safety or empty): {ve}")
-            text = "Response blocked or empty due to safety settings."
+        temp = self.config.get("default_model_params", {}).get(
+            "temperature", self.config.get("temperature", 0.7)
+        )
 
-        usage = getattr(resp, "usage_metadata", None)
-        if usage is not None:
-            input_tokens = getattr(usage, "prompt_token_count", 0)
-            output_tokens = getattr(usage, "candidates_token_count", 0)
+        if self.use_new_sdk:
+            response = self.client.models.generate_content(
+                model=self.model_name,
+                contents=prompt,
+                config=types.GenerateContentConfig(
+                    max_output_tokens=max_tok,
+                    temperature=temp,
+                ),
+            )
+            # Check for safety block or empty response
+            text = getattr(response, "text", "") or ""
+            if not text:
+                candidates = getattr(response, "candidates", [])
+                if candidates and getattr(candidates[0], "finish_reason", None) in [
+                    "SAFETY",
+                    "BLOCKLIST",
+                    "PROHIBITED_CONTENT",
+                ]:
+                    raise ValueError(
+                        f"Gemini output blocked by safety settings: {candidates[0].finish_reason}"
+                    )
+                raise ValueError("Gemini returned empty or blocked response")
+
+            usage = getattr(response, "usage_metadata", None)
+            in_tok = (
+                getattr(usage, "prompt_token_count", 0) if usage else len(prompt) // 4
+            )
+            out_tok = (
+                getattr(usage, "candidates_token_count", 0) if usage else len(text) // 4
+            )
+            return text, in_tok, out_tok
         else:
-            # Fallback heuristic
-            input_tokens = len(prompt) // 4
-            output_tokens = len(text) // 4
-        return text, input_tokens, output_tokens
+            resp = self.client.generate_content(
+                prompt,
+                generation_config={
+                    "max_output_tokens": max_tok,
+                    "temperature": temp,
+                },
+            )
+            try:
+                text = getattr(resp, "text", "") or ""
+            except ValueError as ve:
+                raise ValueError(
+                    f"Gemini response blocked by safety settings: {ve}"
+                ) from ve
+
+            if not text:
+                raise ValueError("Gemini returned empty response")
+
+            usage = getattr(resp, "usage_metadata", None)
+            in_tok = (
+                getattr(usage, "prompt_token_count", 0) if usage else len(prompt) // 4
+            )
+            out_tok = (
+                getattr(usage, "candidates_token_count", 0) if usage else len(text) // 4
+            )
+            return text, in_tok, out_tok
 
 
 class OllamaModel(BaseModel):
+    provider_name = "ollama"
+
     def __init__(self, model_name: str, config: Dict[str, Any]) -> None:
         super().__init__(model_name, config)
         if not OLLAMA_AVAILABLE:
             raise ValueError("Ollama not installed.")
 
     @retry(
+        retry=retry_if_exception(is_transient_error),
         stop=stop_after_attempt(3),
-        wait=wait_exponential(multiplier=1, min=4, max=10),
+        wait=wait_exponential(multiplier=1, min=2, max=10),
+        reraise=True,
     )
     def call(self, prompt: str) -> Tuple[str, int, int]:
+        max_tok = self.config.get("default_model_params", {}).get(
+            "max_tokens", self.config.get("max_tokens", 2000)
+        )
+        temp = self.config.get("default_model_params", {}).get(
+            "temperature", self.config.get("temperature", 0.7)
+        )
+
         resp = ollama.chat(
             model=self.model_name,
             messages=[{"role": "user", "content": prompt}],
+            options={
+                "num_predict": max_tok,
+                "temperature": temp,
+            },
         )
         if isinstance(resp, dict):
             content = resp.get("message", {}).get("content", "")
+            in_tok = resp.get("prompt_eval_count", len(prompt) // 4)
+            out_tok = resp.get("eval_count", len(content) // 4)
         else:
             msg = getattr(resp, "message", None)
             if isinstance(msg, dict):
                 content = msg.get("content", "")
             else:
                 content = getattr(msg, "content", "") or ""
-        # Heuristic for local models
-        return content, len(prompt) // 4, len(content) // 4
+            in_tok = getattr(resp, "prompt_eval_count", len(prompt) // 4)
+            out_tok = getattr(resp, "eval_count", len(content) // 4)
+        return content, in_tok, out_tok
 
 
 def get_model(model_identifier: str, config: Dict[str, Any]) -> BaseModel:
