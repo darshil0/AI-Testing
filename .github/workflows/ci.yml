@@ -2,54 +2,97 @@ name: AI-Testing CI
 
 on:
   push:
-    branches: [ main ]
+    branches:
+      - main
   pull_request:
-    branches: [ main ]
+    branches:
+      - main
 
 permissions:
   contents: read
-  # Add checks: write if you later publish test results as checks
+
+concurrency:
+  group: ai-testing-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
   test:
+    name: Test · Python ${{ matrix.python-version }}
     runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ["3.10", "3.11", "3.12"]
+
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Set up Python
+      - name: Set up Python ${{ matrix.python-version }}
         uses: actions/setup-python@v5
         with:
-          python-version: '3.10'
-          cache: 'pip'
+          python-version: ${{ matrix.python-version }}
+          cache: pip
+          cache-dependency-path: |
+            pyproject.toml
+            requirements*.txt
 
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
-          pip install -e ".[dev]"
+          python -m pip install -e ".[dev]"
 
-      - name: Run Pytest
+      - name: Verify package import
         run: |
-          pytest --maxfail=2 --disable-warnings
+          python -c "import ai_evaluation; print('ai_evaluation import successful')"
 
-      - name: Run Flake8 (Linting)
-        continue-on-error: true
+      - name: Check Black formatting
         run: |
-          flake8 .
+          python -m black --check .
 
-      - name: Ensure results directory exists
+      - name: Check import ordering
+        run: |
+          python -m isort --check-only .
+
+      - name: Run Flake8 linting
+        run: |
+          python -m flake8 .
+
+      - name: Run tests with coverage
+        run: |
+          python -m pytest \
+            --maxfail=2 \
+            --disable-warnings \
+            --cov=ai_evaluation \
+            --cov-report=term-missing \
+            --cov-report=xml:coverage.xml \
+            --cov-fail-under=75
+
+      - name: Create evaluation results directory
         run: |
           mkdir -p ai_evaluation/results
 
-      - name: Run Simulated Evaluation
-        continue-on-error: true
-        timeout-minutes: 30
+      - name: Run simulated evaluation
+        timeout-minutes: 10
         run: |
           run-evaluation --models simulated:default
 
-      - name: Upload Results Artifact
+      - name: Upload evaluation results
+        if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: evaluation-results
+          name: evaluation-results-py${{ matrix.python-version }}
           path: ai_evaluation/results/
           if-no-files-found: warn
+          retention-days: 14
+
+      - name: Upload coverage report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage-py${{ matrix.python-version }}
+          path: coverage.xml
+          if-no-files-found: warn
+          retention-days: 14

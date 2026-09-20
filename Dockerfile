@@ -1,45 +1,31 @@
 # Use official lightweight Python image
 FROM python:3.11-slim
 
-# Set environment variables
-# 1. Prevent Python from writing .pyc files
-# 2. Ensure logs are sent straight to terminal without buffering
 ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1 \
     PIP_NO_CACHE_DIR=1
 
-# Set work directory
 WORKDIR /app
 
-# Install system dependencies if needed (e.g., git or build-essentials)
-# Added 'curl' for potential health checks in dashboard mode
-RUN apt-get update && apt-get install -y --no-install-recommends \
-    curl \
-    && rm -rf /var/lib/apt/lists/*
+# Create non-root user
+RUN groupadd -r appuser && useradd -r -g appuser appuser
 
-# Copy packaging files and package source first to leverage Docker layer caching
-COPY pyproject.toml README.md .
+# Copy packaging metadata first for build caching
+COPY pyproject.toml README.md ./
 COPY ai_evaluation/ ./ai_evaluation/
 
-# Install the package and its dependencies
-# We install '-e .' to trigger editable installation so console scripts are available
 RUN pip install --upgrade pip && \
-    pip install -e .
+    pip install ".[all]"
 
-# Copy the rest of the project source (docs, tests, etc.)
+# Copy remaining source code
 COPY . .
 
-# Create persistent directories for results and ensure log file exists
+# Set permissions for output directories
 RUN mkdir -p ai_evaluation/results && \
-    touch evaluation.log && \
-    chmod -R 777 ai_evaluation/results evaluation.log
+    chown -R appuser:appuser /app
 
-# Expose Streamlit port for the dashboard
+USER appuser
+
 EXPOSE 8501
 
-# Use the new console script as the entry point
-# This allows users to override arguments easily
-ENTRYPOINT ["run-evaluation"]
-
-# Default arguments (can be overridden by user)
-CMD ["--models", "simulated:default"]
+CMD ["run-evaluation", "--models", "simulated:default"]

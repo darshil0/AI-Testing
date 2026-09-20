@@ -7,8 +7,12 @@ automated evaluations, and visualizing results through a dashboard.
 
 __version__ = "2.1.7"
 
-from .run_evaluation import main as run_evaluation
-from .models import BaseModel
+
+def run_evaluation():
+    """Wrapper function to invoke evaluation suite CLI."""
+    from .run_evaluation import main
+
+    return main()
 
 
 def run_dashboard():
@@ -16,6 +20,14 @@ def run_dashboard():
     from .dashboard import main
 
     return main()
+
+
+def __getattr__(name: str):
+    if name == "BaseModel":
+        from .models import BaseModel
+
+        return BaseModel
+    raise AttributeError(f"module '{__name__}' has no attribute '{name}'")
 
 
 # Explicitly define the public API for the package

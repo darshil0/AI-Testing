@@ -1,12 +1,11 @@
-import streamlit as st
-import json
-import pandas as pd
 import glob
-from pathlib import Path
+import json
 import subprocess
 import sys
+from pathlib import Path
 
-
+import pandas as pd
+import streamlit as st
 import yaml
 
 # Reconfigure sys.stdout and sys.stderr to use utf-8 on Windows
@@ -26,8 +25,14 @@ def show_dashboard():
     # Get the directory of the currently running script
     script_dir = Path(__file__).parent
 
-    # Read config.yaml to get dynamic results directory
-    config_path = script_dir / "config.yaml"
+    # Read config from query params or CLI or default config.yaml
+    custom_config_arg = st.sidebar.text_input(
+        "Config File Path", value="ai_evaluation/config.yaml"
+    )
+    config_path = Path(custom_config_arg)
+    if not config_path.exists():
+        config_path = script_dir / "config.yaml"
+
     results_dir_name = "results"
     if config_path.exists():
         try:
@@ -39,7 +44,9 @@ def show_dashboard():
         except Exception as e:
             st.sidebar.warning(f"Could not load config: {e}")
 
-    results_dir = script_dir / results_dir_name
+    results_dir = Path(results_dir_name)
+    if not results_dir.is_absolute():
+        results_dir = config_path.parent / results_dir
 
     # Load available runs
     run_files = glob.glob(str(results_dir / "run_*.json"))
@@ -77,8 +84,10 @@ def show_dashboard():
         "test_case_name": "Unknown",
         "model_type": "Unknown",
         "category": "General",
-        "judge_score": 0.0,
-        "duration_seconds": 0.0,
+        "status": "success",
+        "score": None,
+        "judge_score": None,
+        "duration_seconds": None,
         "estimated_cost": 0.0,
         "prompt": "",
         "response": "",
@@ -90,12 +99,40 @@ def show_dashboard():
         if col not in df.columns:
             df[col] = default_val
 
+    # Standardize score column from score or judge_score
+    if "score" in df.columns:
+        df["score"] = pd.to_numeric(df["score"], errors="coerce")
+    elif "judge_score" in df.columns:
+        df["score"] = pd.to_numeric(df["judge_score"], errors="coerce")
+        # Sentinels from legacy formats (< 0) become None
+        df.loc[df["score"] < 0, "score"] = None
+
+    valid_score_df = df[df["status"].isin(["success"]) & df["score"].notna()]
+    valid_dur_df = df[df["duration_seconds"].notna()]
+
+    avg_score_str = (
+        f"{valid_score_df['score'].mean():.2f}"
+        if not valid_score_df.empty
+        else "No valid scores"
+    )
+    avg_lat_str = (
+        f"{valid_dur_df['duration_seconds'].mean():.2f}s"
+        if not valid_dur_df.empty
+        else "N/A"
+    )
+
     # Metrics Layout
     m1, m2, m3, m4 = st.columns(4)
     m1.metric("Total Tests", len(df))
-    m2.metric("Avg Score", f"{df['judge_score'].mean():.2f}")
-    m3.metric("Avg Latency", f"{df['duration_seconds'].mean():.2f}s")
+    m2.metric("Avg Score (Valid Successes)", avg_score_str)
+    m3.metric("Avg Latency", avg_lat_str)
     m4.metric("Total Cost", f"${df['estimated_cost'].sum():.4f}")
+
+    non_success_df = df[df["status"] != "success"]
+    if not non_success_df.empty:
+        st.warning(
+            f"⚠️ {len(non_success_df)} test case(s) failed, errored, or were invalid in this run."
+        )
 
     # PII Warning
     pii_count = df["pii_found"].sum()
@@ -116,14 +153,13 @@ def show_dashboard():
             "test_case_name",
             "model_type",
             "category",
-            "judge_score",
+            "status",
+            "score",
             "duration_seconds",
             "estimated_cost",
         ]
         st.dataframe(
-            df[display_cols].style.background_gradient(
-                subset=["judge_score"], cmap="RdYlGn"
-            ),
+            df[display_cols],
             use_container_width=True,
         )
 
@@ -149,11 +185,13 @@ def show_dashboard():
             c1, c2 = st.columns(2)
             with c1:
                 st.info("**Prompt:**")
-                st.markdown(f"```text\n{case_data['prompt']}\n```")
+                st.code(str(case_data["prompt"]), language="text")
             with c2:
                 st.success("**Model Response:**")
-                st.markdown(f"```text\n{case_data['response']}\n```")
-                st.warning(f"**Judge Reasoning:**\n\n{case_data['judge_reasoning']}")
+                st.code(str(case_data["response"]), language="text")
+                st.warning(
+                    f"**Judge Reasoning / Error:**\n\n{case_data['judge_reasoning']}"
+                )
 
     with tab2:
         st.subheader("Performance by Model")
@@ -163,15 +201,20 @@ def show_dashboard():
             horizontal=True,
         )
 
-        # Prepare Aggregated Data
+        # Prepare Aggregated Data filtering non-valid entries for score
         if chart_type == "Avg Score":
-            chart_data = df.groupby("model_type")["judge_score"].mean()
+            if valid_score_df.empty:
+                st.warning("No valid scores available to chart.")
+                chart_data = pd.Series(dtype=float)
+            else:
+                chart_data = valid_score_df.groupby("model_type")["score"].mean()
         elif chart_type == "Avg Latency":
-            chart_data = df.groupby("model_type")["duration_seconds"].mean()
+            chart_data = valid_dur_df.groupby("model_type")["duration_seconds"].mean()
         else:
             chart_data = df.groupby("model_type")["estimated_cost"].sum()
 
-        st.bar_chart(chart_data)
+        if not chart_data.empty:
+            st.bar_chart(chart_data)
 
     with tab3:
         if pii_count > 0:
