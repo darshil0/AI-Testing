@@ -1,7 +1,12 @@
 import json
 from unittest.mock import MagicMock, patch
 
+import pytest
+
 from ai_evaluation.dashboard import show_dashboard
+
+pytest.importorskip("streamlit")
+pytest.importorskip("pandas")
 
 
 def test_dashboard_flow(tmp_path):
