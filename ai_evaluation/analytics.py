@@ -25,33 +25,27 @@ def _check_analytics_dependencies():
 
 def generate_analytics(results_path=None, config_path=None) -> None:
     _check_analytics_dependencies()
-    base_dir = Path(__file__).parent.parent
 
     if results_path is None:
-        c_path = (
-            Path(config_path)
-            if config_path
-            else base_dir / "ai_evaluation" / "config.yaml"
-        )
-        if not c_path.exists():
-            c_path = Path(__file__).parent / "config.yaml"
+        try:
+            from .run_evaluation import resolve_config_path, safe_yaml_load
 
-        results_dir_name = "results"
-        if c_path.exists():
-            try:
-                from .run_evaluation import safe_yaml_load
-
-                with c_path.open("r", encoding="utf-8") as f:
-                    config = safe_yaml_load(f)
-                    results_dir_name = config.get("directories", {}).get(
-                        "results", "results"
-                    )
-            except Exception as e:
-                print(f"Warning: Could not read config file {c_path}: {e}")
+            resolved_config_path = resolve_config_path(config_path)
+            with resolved_config_path.open("r", encoding="utf-8") as f:
+                config = safe_yaml_load(f) or {}
+                results_dir_name = (
+                    config.get("directories", {}).get("results", "results")
+                    if isinstance(config, dict)
+                    else "results"
+                )
+        except Exception as e:
+            resolved_config_path = Path(__file__).parent / "config.yaml"
+            results_dir_name = "results"
+            print(f"Warning: Could not read config file: {e}")
 
         results_dir = Path(results_dir_name)
         if not results_dir.is_absolute():
-            results_dir = c_path.parent / results_dir
+            results_dir = resolved_config_path.parent / results_dir
         results_file = results_dir / "latest_results.json"
     else:
         results_file = Path(results_path)
@@ -74,6 +68,41 @@ def generate_analytics(results_path=None, config_path=None) -> None:
         print("No data to analyze.")
         return
 
+    # Standardize legacy/current column aliases
+    if "cost" in df.columns and "estimated_cost" not in df.columns:
+        df["estimated_cost"] = df["cost"]
+    elif "estimated_cost" in df.columns and "cost" not in df.columns:
+        df["cost"] = df["estimated_cost"]
+
+    if "score" in df.columns and "judge_score" not in df.columns:
+        df["judge_score"] = df["score"]
+    elif "judge_score" in df.columns and "score" not in df.columns:
+        df["score"] = df["judge_score"]
+
+    # Supply default values for optional/missing columns
+    defaults = {
+        "model_type": "Unknown",
+        "category": "General",
+        "status": "success",
+        "duration_seconds": None,
+        "estimated_cost": 0.0,
+        "score": None,
+        "judge_score": None,
+    }
+    for col, default_val in defaults.items():
+        if col not in df.columns:
+            df[col] = default_val
+
+    # Coerce numeric columns safely
+    df["score"] = pd.to_numeric(df["score"], errors="coerce")
+    df.loc[df["score"] < 0, "score"] = None
+
+    df["judge_score"] = pd.to_numeric(df["judge_score"], errors="coerce")
+    df.loc[df["judge_score"] < 0, "judge_score"] = None
+
+    df["duration_seconds"] = pd.to_numeric(df["duration_seconds"], errors="coerce")
+    df["estimated_cost"] = pd.to_numeric(df["estimated_cost"], errors="coerce").fillna(0.0)
+
     required_columns = {
         "model_type",
         "judge_score",
@@ -95,17 +124,6 @@ def generate_analytics(results_path=None, config_path=None) -> None:
     unique_models = df["model_type"].unique()
     palette = sns.color_palette("viridis", n_colors=len(unique_models))
     model_color_map = dict(zip(unique_models, palette))
-
-    # Standardize score column if missing
-    if "score" not in df.columns:
-        if "judge_score" in df.columns:
-            df["score"] = pd.to_numeric(df["judge_score"], errors="coerce")
-            df.loc[df["score"] < 0, "score"] = None
-        else:
-            df["score"] = None
-
-    if "status" not in df.columns:
-        df["status"] = "success"
 
     valid_score_df = df[df["status"].isin(["success"]) & df["score"].notna()]
     valid_dur_df = df[df["duration_seconds"].notna()]
