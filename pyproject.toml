@@ -27,34 +27,49 @@ classifiers = [
 
 # Core dependencies
 dependencies = [
-    "openai>=2.45.0",
-    "anthropic>=0.116.0",
-    "google-generativeai>=0.8.0",
-    "ollama>=0.6.0",
     "requests>=2.34.0",
     "python-dotenv>=1.2.0",
-    "pydantic>=2.13.0",
-    "pydantic-settings>=2.14.0",
-    "datasets>=5.0.0",
-    "rich>=15.0.0",
-    "streamlit>=1.59.0",
-    "matplotlib>=3.7.0",
-    "seaborn>=0.13.0",
-    "pandas>=2.0.0",
-    "numpy>=1.24.0",
-    "tenacity>=9.1.0",
-    "python-dateutil>=2.9.0",
-    "jsonschema>=4.26.0",
+    "pydantic>=2.10.0",
+    "pydantic-settings>=2.0.0",
+    "rich>=13.0.0",
+    "tenacity>=8.0.0",
+    "python-dateutil>=2.8.0",
+    "jsonschema>=4.0.0",
     "pyyaml>=6.0.0",
 ]
 
 [project.optional-dependencies]
+openai = ["openai>=1.0.0"]
+anthropic = ["anthropic>=0.18.0"]
+gemini = ["google-genai>=0.1.0"]
+ollama = ["ollama>=0.1.0"]
+dashboard = [
+    "streamlit>=1.30.0",
+    "matplotlib>=3.7.0",
+    "seaborn>=0.12.0",
+    "pandas>=2.0.0",
+    "numpy>=1.24.0",
+]
+hf = ["datasets>=2.14.0"]
+all = [
+    "openai>=1.0.0",
+    "anthropic>=0.18.0",
+    "google-genai>=0.1.0",
+    "ollama>=0.1.0",
+    "streamlit>=1.30.0",
+    "matplotlib>=3.7.0",
+    "seaborn>=0.12.0",
+    "pandas>=2.0.0",
+    "numpy>=1.24.0",
+    "datasets>=2.14.0",
+]
 dev = [
-    "pytest>=9.1.0",
-    "pytest-mock>=3.15.0",
-    "flake8>=7.3.0",
-    "black>=26.5.0",
-    "isort>=8.0.0",
+    "pytest>=8.0.0",
+    "pytest-mock>=3.10.0",
+    "pytest-cov>=4.1.0",
+    "flake8>=6.0.0",
+    "black>=23.0.0",
+    "isort>=5.12.0",
 ]
 
 [project.scripts]
@@ -67,8 +82,12 @@ Homepage = "https://github.com/darshil0/AI-Testing"
 Issues = "https://github.com/darshil0/AI-Testing/issues"
 Repository = "https://github.com/darshil0/AI-Testing.git"
 
-[tool.setuptools]
-packages = ["ai_evaluation"]
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["ai_evaluation*"]
+
+[tool.setuptools.package-data]
+ai_evaluation = ["config.yaml", "test_cases/*"]
 
 [tool.black]
 line-length = 88

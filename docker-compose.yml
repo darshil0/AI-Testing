@@ -24,3 +24,14 @@ services:
     
     # Command to run your evaluation
     command: run-evaluation --models simulated:default
+
+  dashboard:
+    container_name: ai_dashboard_app
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "8501:8501"
+    volumes:
+      - ./ai_evaluation:/app/ai_evaluation
+    command: view-dashboard
