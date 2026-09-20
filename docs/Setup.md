@@ -188,6 +188,18 @@ To disable parallel execution and evaluate test cases one at a time:
 run-evaluation --models simulated:default --sequential
 ```
 
+**Export Consolidated Results as CSV or JSON:**
+To consolidate outputs into CSV format:
+```bash
+run-evaluation --models simulated:default --export-format csv
+```
+
+**Allow Execution to Exit Code 0 on Failures:**
+By default, `run-evaluation` exits with process code `1` if any model or judge errors occur. To opt-in to returning exit code `0` regardless of test case failures (useful for non-blocking CI pipelines):
+```bash
+run-evaluation --models simulated:default --allow-failures
+```
+
 **Specify custom configuration:**
 ```bash
 run-evaluation --models simulated:default --config ai_evaluation/config.yaml
