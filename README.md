@@ -121,6 +121,15 @@ run-evaluation --models openai:gpt-4o anthropic:claude-sonnet-3.5
 # Run and consolidate outputs as a CSV format file
 run-evaluation --models simulated:default --export-format csv
 
+# Run sequentially (one test case at a time for debugging)
+run-evaluation --models simulated:default --sequential
+
+# Allow process exit code 0 even if evaluation failures or errors occur
+run-evaluation --models simulated:default --allow-failures
+
+# Specify a custom configuration file path
+run-evaluation --models simulated:default --config path/to/config.yaml
+
 # Launch the interactive Streamlit dashboard
 view-dashboard
 
@@ -143,6 +152,17 @@ Models are specified as `provider:model_name`:
 | Google | `gemini:gemini-1.5-pro` |
 | Ollama | `ollama:llama3` |
 | Simulated | `simulated:default` |
+
+### CLI Arguments
+
+| Option | Description | Default | Choices / Format |
+| --- | --- | --- | --- |
+| `--models` | Space-separated list of target models to evaluate | `simulated:default` | `provider:model_name` |
+| `--persona` | Judge persona used for LLM-as-a-Judge scoring | `default` | `default`, `critic`, `helper`, `auditor` |
+| `--export-format` | Consolidation output format for run results | `json` | `json`, `csv` |
+| `--sequential` | Run evaluations sequentially instead of in parallel | `False` | Flag |
+| `--allow-failures` | Opt-in flag to exit with status code 0 even if test cases or judge evaluations fail | `False` | Flag |
+| `--config` | Custom path to configuration file | `None` | File path |
 
 ### Judge Personas
 
