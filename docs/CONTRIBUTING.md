@@ -4,12 +4,13 @@ Thank you for your interest in contributing! This document provides guidelines t
 
 ## Table of Contents
 
-* [Code of Conduct](https://www.google.com/search?q=%23code-of-conduct)
-* [Development Setup](https://www.google.com/search?q=%23development-setup)
-* [Making Changes](https://www.google.com/search?q=%23making-changes)
-* [Coding Standards](https://www.google.com/search?q=%23coding-standards)
-* [Testing](https://www.google.com/search?q=%23testing)
-* [Submitting Changes](https://www.google.com/search?q=%23submitting-changes)
+* [Code of Conduct](#code-of-conduct)
+* [Development Setup](#development-setup)
+* [Making Changes](#making-changes)
+* [Coding Standards](#coding-standards)
+* [Testing](#testing)
+* [Submitting Changes](#submitting-changes)
+* [Adding New Features](#adding-new-features)
 
 ---
 
@@ -85,7 +86,7 @@ git checkout -b feature/your-feature-name
 pytest --cov=ai_evaluation
 
 # Format code before committing
-black ai_evaluation/
+black .
 
 ```
 

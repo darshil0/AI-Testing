@@ -20,7 +20,7 @@ python3 -m venv venv
 source venv/bin/activate  # Windows: venv\Scripts\activate
 
 # Install package with development dependencies in editable mode
-pip install -e ".[dev]"
+pip install -e ".[dev,dashboard]"
 ```
 
 ### 2. Run the Full Pytest Suite

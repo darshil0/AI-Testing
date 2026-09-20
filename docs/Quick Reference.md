@@ -52,13 +52,18 @@ run-evaluation --models simulated:default --export-format csv
 run-evaluation --models simulated:default --allow-failures
 ```
 
-### Results & Interactive Dashboard
+### Results, Analytics & Interactive Dashboard
 ```bash
+# Generate visual charts and summary report (Matplotlib/Seaborn)
+generate-analytics
+
 # Launch the Streamlit visualization dashboard
 view-dashboard
 
-# Alternatively, run the dashboard module directly
+# Alternatively, run modules directly
+python -m ai_evaluation
 python -m ai_evaluation.dashboard
+python -m ai_evaluation.analytics
 ```
 
 ---
