@@ -1,5 +1,86 @@
 # AI-Testing 🤖
 
+![Python Version](https://img.shields.io/badge/python-3.9%20%7C%203.10%20%7C%203.11-blue)
+![OpenAI](https://img.shields.io/badge/OpenAI-GPT--4o-412991?logo=openai&logoColor=white)
+![Anthropic](https://img.shields.io/badge/Anthropic-Claude%203.5-D97757?logo=anthropic&logoColor=white)
+![Google Gemini](https://img.shields.io/badge/Google-Gemini%201.5-8E75B2?logo=google-gemini&logoColor=white)
+![Ollama](https://img.shields.io/badge/Ollama-Local%20LLMs-black?logo=ollama&logoColor=white)
+![Streamlit](https://img.shields.io/badge/Streamlit-Dashboard-FF4B4B?logo=streamlit&logoColor=white)
+![Docker](https://img.shields.io/badge/Docker-Ready-2496ED?logo=docker&logoColor=white)
+![License](https://img.shields.io/badge/license-MIT-green)
+
+> **Version 2.1.8** — A professional, enterprise-ready evaluation framework for benchmarking AI models across various domains. Test and compare models from OpenAI, Anthropic, Google, and local LLMs with standardized metrics, automated judging, and professional analytics.
+
+---
+
+## ✨ Key Features
+
+### 🔌 Universal Model Support
+
+* **Cloud APIs**: OpenAI (GPT-4o), Anthropic (Claude), Google (Gemini).
+* **Local Models**: Ollama integration for Llama, Mistral, and other open-source models.
+* **Simulated Mode**: Test workflows without consuming API credits during development.
+
+### ⚖️ Intelligent Evaluation
+
+* **LLM-as-a-Judge**: Automated scoring using state-of-the-art models.
+* **Specialized Personas**: Evaluate from different perspectives (Critic, Helper, Auditor).
+* **Custom Criteria**: Define specific expectations for each test case.
+
+### 📊 Professional Analytics
+
+* **Automated Charts**: Generate publication-ready performance visualizations.
+* **Interactive Dashboard**: Explore results with a Streamlit web interface.
+* **Cost Tracking**: Real-time token usage and API cost estimation.
+* **Performance Metrics**: Latency, accuracy, and quality scoring.
+
+### 🛡️ Security & Quality
+
+* **PII Detection**: Automatic scanning for privacy leaks.
+* **Multi-dimensional Testing**: Categories include reasoning, coding, creativity, and safety.
+* **Reproducible Results**: Timestamped JSON exports for all evaluations.
+
+### 🚀 Developer Experience
+
+* **Rich CLI**: Intuitive terminal interface with real-time progress bars.
+* **Parallel Processing**: Fast evaluation with concurrent execution.
+* **Docker Ready**: Containerized environment for cross-platform consistency.
+* **CI/CD Integration**: GitHub Actions ready for automated regression testing.
+
+---
+
+## 📂 Project Structure
+
+```text
+AI-Testing/
+├── ai_evaluation/
+│   ├── __init__.py
+│   ├── run_evaluation.py    # Main evaluation engine
+│   ├── dashboard.py         # Streamlit dashboard
+│   ├── models.py            # Model adapters (OpenAI, Anthropic, Gemini, Ollama)
+│   ├── analytics.py         # Matplotlib/Seaborn chart generation
+│   ├── config.yaml          # Centralized configuration
+│   └── test_cases/          # Test prompts and scenarios
+├── tests/                   # Unit and integration tests
+├── pyproject.toml           # Project definition and dependencies
+├── Dockerfile               # Container definition
+└── docs/                    # Detailed documentation
+
+
+Here is the updated `README.md` file with standard Markdown/Shields.io technology badges added right under the title section.
+
+```markdown
+# AI-Testing 🤖
+
+![Python Version](https://img.shields.io/badge/python-3.9%20%7C%203.10%20%7C%203.11-blue)
+![OpenAI](https://img.shields.io/badge/OpenAI-GPT--4o-412991?logo=openai&logoColor=white)
+![Anthropic](https://img.shields.io/badge/Anthropic-Claude%203.5-D97757?logo=anthropic&logoColor=white)
+![Google Gemini](https://img.shields.io/badge/Google-Gemini%201.5-8E75B2?logo=google-gemini&logoColor=white)
+![Ollama](https://img.shields.io/badge/Ollama-Local%20LLMs-black?logo=ollama&logoColor=white)
+![Streamlit](https://img.shields.io/badge/Streamlit-Dashboard-FF4B4B?logo=streamlit&logoColor=white)
+![Docker](https://img.shields.io/badge/Docker-Ready-2496ED?logo=docker&logoColor=white)
+![License](https://img.shields.io/badge/license-MIT-green)
+
 > **Version 2.1.8** — A professional, enterprise-ready evaluation framework for benchmarking AI models across various domains. Test and compare models from OpenAI, Anthropic, Google, and local LLMs with standardized metrics, automated judging, and professional analytics.
 
 ---
@@ -65,9 +146,9 @@ AI-Testing/
 
 For detailed, step-by-step instructions and reference sheets, explore our documentation guides:
 
-* 🚀 **[Setup Guide](docs/Setup.md)**: System prerequisites, environment variable configuration, virtual environment instructions, and directory verification.
-* 📋 **[Quick Reference Guide](docs/Quick%20Reference.md)**: Command-line cheat sheet, test case format examples (YAML, text, expected answers), and model provider prefix reference.
-* 🤝 **[Contributing Guidelines](docs/CONTRIBUTING.md)**: Coding standards (PEP 8, Black), workflow branching, writing tests, and pull request checklist.
+* 🚀 **[Setup Guide](https://www.google.com/search?q=docs/Setup.md&utm_source=gemini)**: System prerequisites, environment variable configuration, virtual environment instructions, and directory verification.
+* 📋 **[Quick Reference Guide](https://www.google.com/search?q=docs/Quick%252520Reference.md&utm_source=gemini)**: Command-line cheat sheet, test case format examples (YAML, text, expected answers), and model provider prefix reference.
+* 🤝 **[Contributing Guidelines](https://www.google.com/search?q=docs/CONTRIBUTING.md&utm_source=gemini)**: Coding standards (PEP 8, Black), workflow branching, writing tests, and pull request checklist.
 
 ---
 
@@ -79,7 +160,7 @@ Clone the repository and install the project in editable mode:
 
 ```bash
 # Clone the repository
-git clone https://github.com/darshil0/AI-Testing.git
+git clone [https://github.com/darshil0/AI-Testing.git](https://github.com/darshil0/AI-Testing.git)
 cd AI-Testing
 
 # Create and activate a virtual environment
@@ -118,7 +199,7 @@ run-evaluation --models openai:gpt-4o
 # Compare multiple models side-by-side
 run-evaluation --models openai:gpt-4o anthropic:claude-3-5-sonnet-20241022
 
-# Run and consolidate outputs as a CSV format file
+# Run and consolidate outputs in CSV format
 run-evaluation --models simulated:default --export-format csv
 
 # Run sequentially (one test case at a time for debugging)
@@ -140,6 +221,7 @@ view-dashboard
 python -m ai_evaluation
 python -m ai_evaluation.dashboard
 python -m ai_evaluation.analytics
+
 ```
 
 ---
@@ -210,6 +292,7 @@ Category: Reasoning
 Difficulty: Hard
 
 If a train travels 60 mph for 2 hours and then 80 mph for 1 hour, what is the average speed for the whole journey?
+
 ```
 
 ---
@@ -227,6 +310,7 @@ flake8 .
 
 # Run simulated evaluation
 run-evaluation --models simulated:default
+
 ```
 
 ### Adding a New Model Provider
@@ -239,12 +323,10 @@ run-evaluation --models simulated:default
 
 ## 📄 License
 
-This project is licensed under the MIT License - see [LICENSE](LICENSE) for details.
+This project is licensed under the MIT License - see [LICENSE](https://www.google.com/search?q=LICENSE&utm_source=gemini) for details.
 
 ---
 
 **Made with ❤️ by Darshil**
 
-[⬆ Back to Top](#ai-testing-)
-
----
+[⬆ Back to Top](https://www.google.com/search?q=%2523ai-testing-&utm_source=gemini)
