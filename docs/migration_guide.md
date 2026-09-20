@@ -17,7 +17,7 @@ git pull origin main
 source venv/bin/activate  # On Windows: venv\Scripts\activate
 
 # 3. Perform an editable installation of the package along with developer tools
-pip install -e ".[dev]"
+pip install -e ".[dev,dashboard]"
 
 # 4. Clear any cached test outputs (Optional but recommended)
 rm -rf .pytest_cache/

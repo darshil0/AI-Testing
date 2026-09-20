@@ -47,16 +47,16 @@ You should see `(venv)` appear in your terminal prompt, indicating the virtual e
 
 ### 3. Install Dependencies and CLI Tools
 
-Install the project in editable mode so that you get the command-line interface tools (`run-evaluation` and `view-dashboard`):
+Install the project in editable mode so that you get the command-line interface tools (`run-evaluation`, `view-dashboard`, and `generate-analytics`):
 
 ```bash
 pip install -e .
 ```
 
-If you plan on running tests or contributing, install the development dependencies as well:
+If you plan on running tests, dashboard, analytics, or contributing, install the development dependencies as well:
 
 ```bash
-pip install -e ".[dev]"
+pip install -e ".[dev,dashboard]"
 ```
 
 This will install all necessary Python packages and CLI entry points, including:
@@ -216,16 +216,23 @@ run-evaluation --help
 
 Each evaluation run automatically saves rich, detailed metadata to JSON files inside the `results/` directory configured in `config.yaml`.
 
-### Launching the Dashboard
+### Launching the Dashboard & Generating Analytics
 
-The framework comes with a Streamlit-based visual dashboard. You can launch it using:
+The framework comes with a Streamlit-based visual dashboard and a Matplotlib/Seaborn analytics report generator.
 
+**Generate Static Analytics Charts:**
+```bash
+generate-analytics
+```
+
+**Launch the Dashboard:**
 ```bash
 view-dashboard
 ```
 
-Alternatively, you can run:
+Alternatively, you can run the modules directly:
 ```bash
+python -m ai_evaluation.analytics
 python -m ai_evaluation.dashboard
 ```
 

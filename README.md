@@ -116,7 +116,7 @@ run-evaluation --models simulated:default
 run-evaluation --models openai:gpt-4o
 
 # Compare multiple models side-by-side
-run-evaluation --models openai:gpt-4o anthropic:claude-sonnet-3.5
+run-evaluation --models openai:gpt-4o anthropic:claude-3-5-sonnet-20241022
 
 # Run and consolidate outputs as a CSV format file
 run-evaluation --models simulated:default --export-format csv
@@ -130,11 +130,16 @@ run-evaluation --models simulated:default --allow-failures
 # Specify a custom configuration file path
 run-evaluation --models simulated:default --config path/to/config.yaml
 
+# Generate static analytics charts (Matplotlib / Seaborn)
+generate-analytics
+
 # Launch the interactive Streamlit dashboard
 view-dashboard
 
-# Alternatively, run the dashboard module directly
+# Alternatively, run modules directly
+python -m ai_evaluation
 python -m ai_evaluation.dashboard
+python -m ai_evaluation.analytics
 ```
 
 ---
