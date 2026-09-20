@@ -59,6 +59,21 @@ expectations:
     assert "Use a pivot" in tc.expectations
 
 
+def test_windows_style_yaml_path_parsing(tmp_path):
+    yaml_content = r"""
+output_dir: "C:\Users\example\results"
+category: "WindowsTest"
+prompt: "Test windows paths"
+"""
+    file_path = tmp_path / "windows_case.yaml"
+    file_path.write_text(yaml_content, encoding="utf-8")
+
+    evaluator = AIEvaluator()
+    tc = evaluator._parse_test_case(file_path)
+    assert tc.category == "WindowsTest"
+    assert tc.prompt == "Test windows paths"
+
+
 def test_parse_test_case_txt(tmp_path):
     # Test txt parsing with headers and anchored metadata
     txt_content = """Category: Reasoning
@@ -194,12 +209,13 @@ def test_missing_pricing_warning(caplog):
     with (
         patch("ai_evaluation.models.OPENAI_AVAILABLE", True),
         patch("os.getenv", return_value="fake"),
+        patch("ai_evaluation.models.OpenAI"),
     ):
         model = OpenAIModel(model_name="unconfigured_model", config=config)
 
     with caplog.at_level(logging.WARNING):
         cost = model._calculate_cost(1000000, 2000000)
-        assert cost == 0.0
+        assert cost is None
         assert any(
             "Pricing config missing" in record.message for record in caplog.records
         )
@@ -355,12 +371,12 @@ def test_model_adapters_mocked():
     )
     mock_gemini_resp.usage_metadata = None
 
+    mock_legacy_genai = MagicMock()
     with (
         patch("ai_evaluation.models.GEMINI_AVAILABLE", True),
         patch("ai_evaluation.models.GEMINI_GENAI_AVAILABLE", False),
+        patch("ai_evaluation.models.genai_legacy", mock_legacy_genai),
         patch("os.getenv", return_value="fake_key"),
-        patch("google.generativeai.GenerativeModel", create=True),
-        patch("google.generativeai.configure", create=True),
     ):
         model = GeminiModel("gemini-1.5-pro", config)
         model.client.generate_content.return_value = mock_gemini_resp

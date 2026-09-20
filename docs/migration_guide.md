@@ -1,7 +1,7 @@
-# Migration Guide: Upgrading to AI-Testing Version 2.1.7
+# Migration Guide: Upgrading to AI-Testing Version 2.1.8
 
 ## Introduction
-This guide provides instructions and details for upgrading your AI-Testing environment from previous legacy releases (such as `v2.0.0` or `v2.1.0`) to the latest enterprise-ready **Version 2.1.7**.
+This guide provides instructions and details for upgrading your AI-Testing environment from previous legacy releases (such as `v2.0.0` or `v2.1.7`) to the latest enterprise-ready **Version 2.1.8**.
 
 ---
 
@@ -28,7 +28,27 @@ python -m pytest
 
 ---
 
-## 🚀 Key Evolutionary Milestones (What's New in v2.1.7)
+## 🚀 Key Evolutionary Milestones (What's New in v2.1.8)
+
+### Pricing Calculation and Provider Lookup
+- `BaseModel._calculate_cost` now uses the resolved pricing dictionary. Provider-qualified names (e.g., `openai:gpt-4o`) lookup correctly without `KeyError`.
+- Missing pricing produces unknown cost (`None`).
+
+### Judge JSON Parsing & Score Validation
+- Judge response outputs must contain exactly one JSON object/block with a valid numeric score in `[0.0, 1.0]`.
+- Missing JSON objects raise `ValueError("Judge response did not contain JSON block")`.
+- Multiple JSON objects are rejected as ambiguous.
+- Scores out of range raise errors containing `"out of valid range"`.
+
+### Hugging Face Dataset Limits
+- In `load_from_hf`, streaming datasets now use `.take(count)` to limit iteration without reading entire datasets into memory.
+
+### Optional Dashboard Dependencies
+- Dashboard imports no longer fail when Streamlit or pandas are absent. Running the dashboard without optional dependencies raises actionable installation instructions: `pip install "ai-evaluation-framework[dashboard]"`.
+
+### Portable Windows YAML Paths
+- Standard YAML parsing handles escaped backslashes (`\n`, `\t`, `\uXXXX`). Portable paths like `C:/Users/example/results` or `'C:\Users\example\results'` are recommended.
+- For unescaped Windows paths like `"C:\Users\example\results"`, a conservative fallback is applied on YAML escape scanning errors without corrupting valid escapes.
 
 ### 1. Unified Packaging & Console Scripts
 * **Legacy Behavior**: Invocations required executing scripts directly by path (e.g., `python ai_evaluation/run_evaluation.py`).

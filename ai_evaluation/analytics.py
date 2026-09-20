@@ -4,7 +4,6 @@ from pathlib import Path
 import matplotlib.pyplot as plt
 import pandas as pd
 import seaborn as sns
-import yaml
 
 
 def generate_analytics(results_path=None, config_path=None) -> None:
@@ -22,8 +21,10 @@ def generate_analytics(results_path=None, config_path=None) -> None:
         results_dir_name = "results"
         if c_path.exists():
             try:
+                from .run_evaluation import safe_yaml_load
+
                 with c_path.open("r", encoding="utf-8") as f:
-                    config = yaml.safe_load(f)
+                    config = safe_yaml_load(f)
                     results_dir_name = config.get("directories", {}).get(
                         "results", "results"
                     )

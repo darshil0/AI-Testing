@@ -4,9 +4,16 @@ import subprocess
 import sys
 from pathlib import Path
 
-import pandas as pd
-import streamlit as st
-import yaml
+# Optional dashboard imports guarded at import time
+try:
+    import pandas as pd
+    import streamlit as st
+
+    DASHBOARD_AVAILABLE = True
+except ImportError:
+    pd = None  # type: ignore
+    st = None  # type: ignore
+    DASHBOARD_AVAILABLE = False
 
 # Reconfigure sys.stdout and sys.stderr to use utf-8 on Windows
 if sys.platform.startswith("win"):
@@ -16,7 +23,16 @@ if sys.platform.startswith("win"):
         sys.stderr.reconfigure(encoding="utf-8")
 
 
+def _check_dashboard_dependencies():
+    if not DASHBOARD_AVAILABLE:
+        raise RuntimeError(
+            "Dashboard dependencies (streamlit, pandas, matplotlib, seaborn, numpy) are not installed.\n"
+            "Install them with: pip install 'ai-evaluation-framework[dashboard]'"
+        )
+
+
 def show_dashboard():
+    _check_dashboard_dependencies()
     st.set_page_config(page_title="AI Benchmark Dashboard", layout="wide")
 
     st.title("🤖 AI-Testing Benchmark Dashboard")
@@ -36,8 +52,10 @@ def show_dashboard():
     results_dir_name = "results"
     if config_path.exists():
         try:
+            from .run_evaluation import safe_yaml_load
+
             with open(config_path, "r", encoding="utf-8") as f:
-                config = yaml.safe_load(f)
+                config = safe_yaml_load(f)
                 results_dir_name = config.get("directories", {}).get(
                     "results", "results"
                 )
@@ -224,7 +242,7 @@ def show_dashboard():
             st.success("No PII leaks detected in this run.")
 
     st.sidebar.markdown("---")
-    st.sidebar.info("V2.1.7 - Production Ready")
+    st.sidebar.info("V2.1.8 - Production Ready")
 
 
 def main():
@@ -233,6 +251,12 @@ def main():
     If run within a Streamlit context, it calls show_dashboard().
     Otherwise, it invokes Streamlit subprocess to run itself.
     """
+    try:
+        _check_dashboard_dependencies()
+    except RuntimeError as exc:
+        print(f"Error: {exc}", file=sys.stderr)
+        sys.exit(1)
+
     if st.runtime.exists():
         show_dashboard()
     else:
