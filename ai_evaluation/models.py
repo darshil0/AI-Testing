@@ -1,8 +1,39 @@
 import logging
 import os
-from typing import Tuple, Dict, Any
+from typing import Tuple, Dict, Any, Optional
 
-from tenacity import retry, stop_after_attempt, wait_exponential
+from tenacity import retry, retry_if_exception, stop_after_attempt, wait_exponential
+
+
+def is_transient_error(exc: Exception) -> bool:
+    if isinstance(exc, (TimeoutError, ConnectionError)):
+        return True
+
+    status_code = getattr(exc, "status_code", None)
+    if status_code is None:
+        response = getattr(exc, "response", None)
+        status_code = getattr(response, "status_code", None)
+
+    if status_code in {408, 409, 425, 429, 500, 502, 503, 504}:
+        return True
+
+    message = str(exc).lower()
+
+    transient_markers = (
+        "rate limit",
+        "too many requests",
+        "temporarily unavailable",
+        "service unavailable",
+        "gateway timeout",
+        "connection reset",
+        "connection timed out",
+        "read timeout",
+    )
+    if any(marker in message for marker in transient_markers):
+        return True
+
+    return False
+
 
 # Optional imports for real models
 try:
@@ -45,23 +76,34 @@ class BaseModel:
         """Return (response_text, input_tokens, output_tokens)."""
         raise NotImplementedError
 
-    def _calculate_cost(self, input_tokens: int, output_tokens: int) -> float:
+    def _calculate_cost(
+        self,
+        input_tokens: Optional[int],
+        output_tokens: Optional[int],
+    ) -> Optional[float]:
         pricing_config = self.config.get("pricing", {})
         if self.model_name not in pricing_config:
-            if self.model_name != "default":
+            if self.model_name not in ("default", "simulated"):
                 logger.warning(
-                    f"Pricing config is missing for model '{self.model_name}'. Cost will be set to $0.0."
+                    f"No pricing configured for model '{self.model_name}'; cost is unknown"
                 )
-            prices = {"input": 0.0, "output": 0.0}
-        else:
-            prices = pricing_config[self.model_name]
+            return None
 
-        input_price = prices.get("input", 0.0) if isinstance(prices, dict) else 0.0
-        output_price = prices.get("output", 0.0) if isinstance(prices, dict) else 0.0
+        if input_tokens is None or output_tokens is None:
+            return None
 
-        return (input_tokens / 1_000_000 * input_price) + (
-            output_tokens / 1_000_000 * output_price
-        )
+        pricing = pricing_config[self.model_name]
+        if not isinstance(pricing, dict):
+            return None
+
+        input_price = pricing.get("input")
+        output_price = pricing.get("output")
+        if input_price is None or output_price is None:
+            return None
+
+        return (input_tokens / 1_000_000) * input_price + (
+            output_tokens / 1_000_000
+        ) * output_price
 
 
 class SimulatedModel(BaseModel):
@@ -79,8 +121,10 @@ class OpenAIModel(BaseModel):
         self.client = OpenAI(api_key=api_key)
 
     @retry(
+        retry=retry_if_exception(is_transient_error),
         stop=stop_after_attempt(3),
         wait=wait_exponential(multiplier=1, min=4, max=10),
+        reraise=True,
     )
     def call(self, prompt: str) -> Tuple[str, int, int]:
         resp = self.client.chat.completions.create(
@@ -108,8 +152,10 @@ class AnthropicModel(BaseModel):
         self.client = Anthropic(api_key=api_key)
 
     @retry(
+        retry=retry_if_exception(is_transient_error),
         stop=stop_after_attempt(3),
         wait=wait_exponential(multiplier=1, min=4, max=10),
+        reraise=True,
     )
     def call(self, prompt: str) -> Tuple[str, int, int]:
         resp = self.client.messages.create(
@@ -148,8 +194,10 @@ class GeminiModel(BaseModel):
         self.client = genai.GenerativeModel(self.model_name)
 
     @retry(
+        retry=retry_if_exception(is_transient_error),
         stop=stop_after_attempt(3),
         wait=wait_exponential(multiplier=1, min=4, max=10),
+        reraise=True,
     )
     def call(self, prompt: str) -> Tuple[str, int, int]:
         resp = self.client.generate_content(
@@ -187,8 +235,10 @@ class OllamaModel(BaseModel):
             raise ValueError("Ollama not installed.")
 
     @retry(
+        retry=retry_if_exception(is_transient_error),
         stop=stop_after_attempt(3),
         wait=wait_exponential(multiplier=1, min=4, max=10),
+        reraise=True,
     )
     def call(self, prompt: str) -> Tuple[str, int, int]:
         resp = ollama.chat(

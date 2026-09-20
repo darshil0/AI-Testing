@@ -1,12 +1,13 @@
 import datetime
 import json
 import logging
+import math
 import time
 import os
 import re
 from pathlib import Path
 from concurrent.futures import ThreadPoolExecutor
-from typing import List, Dict, Any, Tuple
+from typing import List, Dict, Any, Tuple, Optional
 
 import sys
 import yaml
@@ -108,39 +109,109 @@ class TestCase(BaseModel):
     metadata: Dict[str, Any] = Field(default_factory=dict)
 
 
+def validate_score(value: object) -> float:
+    """Strictly validate a judge score."""
+    if isinstance(value, bool):
+        raise ValueError("Judge score must be numeric, not boolean")
+
+    if not isinstance(value, (int, float)):
+        raise ValueError("Judge score must be numeric")
+
+    score = float(value)
+
+    if not math.isfinite(score):
+        raise ValueError("Judge score must be finite")
+
+    if not 0.0 <= score <= 1.0:
+        raise ValueError("Judge score must be in [0.0, 1.0]")
+
+    return score
+
+
 class EvaluationResult(BaseModel):
-    test_case_name: str
-    category: str
-    difficulty: str
-    model_type: str
-    prompt: str
-    response: str
-    duration_seconds: float
+    test_case_name: str = ""
+    category: str = "General"
+    difficulty: str = "Medium"
+    model_type: str = ""
+    prompt: str = ""
+    response: str = ""
+    duration_seconds: float = 0.0
     tokens_input: int = 0
     tokens_output: int = 0
-    estimated_cost: float = 0.0
-    judge_score: float = 0.0
+    estimated_cost: Optional[float] = None
+    judge_score: Optional[float] = 0.0
     judge_reasoning: str = ""
     pii_found: bool = False
     pii_types: List[str] = Field(default_factory=list)
     timestamp: str = Field(default_factory=lambda: datetime.datetime.now().isoformat())
+    status: str = "success"
+
+    def __init__(self, **data: Any) -> None:
+        if "cost" in data and "estimated_cost" not in data:
+            data["estimated_cost"] = data.pop("cost")
+        if "score" in data and "judge_score" not in data:
+            data["judge_score"] = data.pop("score")
+        super().__init__(**data)
+
+    @property
+    def cost(self) -> Optional[float]:
+        return self.estimated_cost
+
+    @property
+    def score(self) -> Optional[float]:
+        return self.judge_score
+
+
+def summarize_results(results: List[EvaluationResult]) -> Dict[str, Any]:
+    """Compute summary statistics for a list of evaluation results."""
+    valid_scores = [r.score for r in results if r.score is not None and r.score >= 0.0]
+    failed_judge_count = sum(1 for r in results if r.score is None or r.score < 0.0)
+    known_costs = [r.cost for r in results if r.cost is not None]
+    unknown_cost_count = sum(1 for r in results if r.cost is None)
+    total_cost = sum(known_costs)
+    cost_complete = unknown_cost_count == 0
+
+    avg_score = sum(valid_scores) / len(valid_scores) if valid_scores else None
+
+    return {
+        "total_cases": len(results),
+        "valid_scores_count": len(valid_scores),
+        "avg_score": avg_score,
+        "failed_judge_count": failed_judge_count,
+        "known_total_cost": round(total_cost, 6),
+        "unknown_cost_count": unknown_cost_count,
+        "cost_complete": cost_complete,
+    }
+
+
+def resolve_config_path(config_arg: Any = None) -> Path:
+    """Resolve configuration file path strictly."""
+    if config_arg is not None:
+        path = Path(config_arg).expanduser()
+        if not path.is_file():
+            raise FileNotFoundError(f"Configuration file not found: {path}")
+        return path
+
+    default_path = Path("ai_evaluation/config.yaml")
+    if default_path.is_file():
+        return default_path
+
+    alt_path = Path(__file__).parent / "config.yaml"
+    if alt_path.is_file():
+        return alt_path
+
+    raise FileNotFoundError(f"Configuration file not found: {default_path}")
 
 
 class AIEvaluator:
-    def __init__(self, config_path: str = "ai_evaluation/config.yaml") -> None:
-        # Handle relative paths from project root
-        if not Path(config_path).exists():
-            alt_path = Path(__file__).parent / "config.yaml"
-            if alt_path.exists():
-                config_path = str(alt_path)
-            else:
-                raise FileNotFoundError(f"Config file not found at {config_path}")
+    def __init__(self, config_path: Any = None) -> None:
+        self.config_path = resolve_config_path(config_path)
 
-        with open(config_path, "r", encoding="utf-8") as f:
+        with open(self.config_path, "r", encoding="utf-8") as f:
             self.config = yaml.safe_load(f)
 
         # Resolve paths relative to config location
-        config_dir = Path(config_path).parent
+        config_dir = self.config_path.parent
 
         directories = self.config.get("directories", {})
         test_cases_path = directories.get("test_cases", "test_cases")
@@ -236,39 +307,24 @@ MODEL RESPONSE: {response}"""
         try:
             raw, _, _ = judge_model.call(prompt)
             blocks = extract_json_blocks(raw)
-            parsed_data = None
-            for block in blocks:
-                try:
-                    data = json.loads(block)
-                    if isinstance(data, dict) and "score" in data:
-                        parsed_data = data
-                        break
-                except json.JSONDecodeError:
-                    continue
-
-            if parsed_data is not None:
-                # Validate JSON/fields
-                if "score" not in parsed_data:
-                    raise ValueError("JSON is missing the required 'score' key.")
-
-                try:
-                    score = float(parsed_data["score"])
-                except (TypeError, ValueError) as e:
-                    raise ValueError(
-                        f"Score is not a valid float: {parsed_data['score']}"
-                    ) from e
-
-                # Clamp score to valid range
-                score = max(0.0, min(1.0, score))
-                reasoning = parsed_data.get("reasoning", "")
-                return score, reasoning
-            else:
-                logger.warning(
-                    f"Judge response did not contain valid JSON: {raw[:100]}"
-                )
+            if len(blocks) != 1:
                 raise ValueError(
-                    f"Judge response did not contain valid JSON with score. Raw response: {raw}"
+                    f"Expected exactly 1 JSON block in judge output, found {len(blocks)}. Raw response: {raw}"
                 )
+
+            try:
+                data = json.loads(blocks[0])
+            except json.JSONDecodeError as e:
+                raise ValueError(
+                    f"Judge response contained invalid JSON block: {e}"
+                ) from e
+
+            if not isinstance(data, dict) or "score" not in data:
+                raise ValueError("JSON is missing the required 'score' key.")
+
+            score = validate_score(data["score"])
+            reasoning = data.get("reasoning", "")
+            return score, reasoning
         except Exception as e:
             logger.error(f"Judging failed: {e}")
             raise e
@@ -289,31 +345,44 @@ MODEL RESPONSE: {response}"""
             lines = content.splitlines()
             category = "General"
             difficulty = "Medium"
-            header_line_count = 0
+            expectations: List[str] = []
+            idx = 0
 
-            for line in lines:
-                stripped = line.strip()
+            while idx < len(lines):
+                stripped = lines[idx].strip()
+
                 if not stripped:
-                    if header_line_count > 0:
-                        header_line_count += 1
-                        break
-                    else:
-                        header_line_count += 1
-                        continue
+                    idx += 1
+                    continue
 
                 cat_m = re.match(r"^Category:\s*(.*)", stripped, re.IGNORECASE)
                 diff_m = re.match(r"^Difficulty:\s*(.*)", stripped, re.IGNORECASE)
+                exp_m = re.match(r"^Expectations?:\s*(.*)", stripped, re.IGNORECASE)
 
                 if cat_m:
-                    category = cat_m.group(1).strip()
-                    header_line_count += 1
-                elif diff_m:
-                    difficulty = diff_m.group(1).strip()
-                    header_line_count += 1
-                else:
-                    break
+                    val = cat_m.group(1).strip()
+                    if val:
+                        category = val
+                    idx += 1
+                    continue
 
-            prompt_body = "\n".join(lines[header_line_count:]).strip()
+                if diff_m:
+                    val = diff_m.group(1).strip()
+                    if val:
+                        difficulty = val
+                    idx += 1
+                    continue
+
+                if exp_m:
+                    val = exp_m.group(1).strip()
+                    if val:
+                        expectations.append(val)
+                    idx += 1
+                    continue
+
+                break
+
+            prompt_body = "\n".join(lines[idx:]).strip()
             if not prompt_body:
                 prompt_body = content.strip()
 
@@ -322,6 +391,7 @@ MODEL RESPONSE: {response}"""
                 category=category,
                 difficulty=difficulty,
                 prompt=prompt_body,
+                expectations=expectations,
             )
         except Exception as e:
             logger.error(f"Error parsing test case {file_path}: {e}")
@@ -346,12 +416,16 @@ MODEL RESPONSE: {response}"""
 
             duration = time.time() - start_time
             cost = model._calculate_cost(input_tokens, output_tokens)
+            estimated_cost = round(cost, 6) if cost is not None else None
             pii_found, pii_types = self._pii_scan(response)
+
             try:
                 score, reason = self.judge_response(tc, response, persona)
+                judge_status = "success"
             except Exception as je:
                 logger.warning(f"Judging failed for {tc.name}: {je}")
-                score, reason = -1.0, f"Judging failed: {str(je)}"
+                score, reason = None, f"Judging failed: {str(je)}"
+                judge_status = "judge_error"
 
             return EvaluationResult(
                 test_case_name=tc.name,
@@ -363,11 +437,12 @@ MODEL RESPONSE: {response}"""
                 duration_seconds=round(duration, 2),
                 tokens_input=input_tokens,
                 tokens_output=output_tokens,
-                estimated_cost=round(cost, 6),
-                judge_score=round(score, 3),
+                estimated_cost=estimated_cost,
+                judge_score=round(score, 3) if score is not None else None,
                 judge_reasoning=reason,
                 pii_found=pii_found,
                 pii_types=pii_types,
+                status=judge_status,
             )
         except Exception as e:
             logger.error(f"Error processing {tc.name} with {model_id}: {e}")
@@ -379,8 +454,10 @@ MODEL RESPONSE: {response}"""
                 prompt=tc.prompt,
                 response=f"Error: {str(e)}",
                 duration_seconds=0.0,
-                judge_score=0.0,
+                judge_score=None,
+                estimated_cost=None,
                 judge_reasoning=f"Fatal error during processing: {str(e)}",
+                status="model_error",
             )
 
     def run_suite(
@@ -442,35 +519,48 @@ MODEL RESPONSE: {response}"""
         table.add_column("Cost", style="red")
 
         for result in self.results:
+            score_str = (
+                f"{result.judge_score:.2f}"
+                if result.judge_score is not None and result.judge_score >= 0.0
+                else "N/A"
+            )
+            cost_str = (
+                f"${result.estimated_cost:.4f}"
+                if result.estimated_cost is not None
+                else "N/A"
+            )
             table.add_row(
                 result.test_case_name[:30],
                 result.model_type[:20],
-                f"{result.judge_score:.2f}",
+                score_str,
                 f"{result.duration_seconds:.2f}s",
-                f"${result.estimated_cost:.4f}",
+                cost_str,
             )
 
         console.print(table)
 
-        # Summary stats - filter out sentinel error scores (< 0.0) for avg_score
-        valid_scores = [r.judge_score for r in self.results if r.judge_score >= 0.0]
-        failed_judge_count = sum(1 for r in self.results if r.judge_score < 0.0)
+        summary = summarize_results(self.results)
 
-        if valid_scores:
-            avg_score = sum(valid_scores) / len(valid_scores)
-            console.print(f"\n[bold]Average Score:[/] {avg_score:.3f}")
+        if summary["avg_score"] is not None:
+            console.print(f"\n[bold]Average Score:[/] {summary['avg_score']:.3f}")
         else:
             console.print("\n[bold]Average Score:[/] N/A (No valid judge scores)")
 
-        if failed_judge_count > 0:
+        if summary["failed_judge_count"] > 0:
             console.print(
-                f"[bold yellow]⚠ Judge Errors:[/] {failed_judge_count} responses failed judging"
+                f"[bold yellow]⚠ Judge Errors:[/] {summary['failed_judge_count']} responses failed judging"
             )
 
-        total_cost = sum(r.estimated_cost for r in self.results)
-        pii_count = sum(1 for r in self.results if r.pii_found)
+        console.print(f"[bold]Known Total Cost:[/] ${summary['known_total_cost']:.4f}")
+        if not summary["cost_complete"]:
+            console.print(
+                f"[bold yellow]⚠ Cases with Unknown Cost:[/] {summary['unknown_cost_count']}/{summary['total_cases']}"
+            )
+            console.print("[bold yellow]Cost completeness: incomplete[/]")
+        else:
+            console.print("[bold green]Cost completeness: complete[/]")
 
-        console.print(f"[bold]Total Cost:[/] ${total_cost:.4f}")
+        pii_count = sum(1 for r in self.results if r.pii_found)
         if pii_count > 0:
             console.print(f"[bold red]⚠ PII Warnings:[/] {pii_count} responses")
 
@@ -513,7 +603,7 @@ MODEL RESPONSE: {response}"""
         console.print(f"[green]✓[/] Results saved to: {run_path.name}")
 
 
-def main() -> None:
+def main() -> int:
     import argparse
 
     parser = argparse.ArgumentParser(
@@ -546,7 +636,7 @@ Examples:
     )
     parser.add_argument(
         "--config",
-        default="ai_evaluation/config.yaml",
+        default=None,
         help="Path to configuration file",
     )
     parser.add_argument(
@@ -554,11 +644,22 @@ Examples:
         action="store_true",
         help="Run evaluations sequentially instead of parallel",
     )
+    parser.add_argument(
+        "--require-known-costs",
+        action="store_true",
+        help="Fail evaluation if any model or judge cost is unknown",
+    )
+    parser.add_argument(
+        "--allow-failures",
+        action="store_true",
+        help="Exit with status 0 even if evaluation test cases fail or judge errors occur",
+    )
 
     args = parser.parse_args()
 
     try:
-        evaluator = AIEvaluator(config_path=args.config)
+        config_path = resolve_config_path(args.config)
+        evaluator = AIEvaluator(config_path=config_path)
         console.print(
             Panel.fit(
                 f"🤖 AI Benchmark V2.1.7\nPersona: {args.persona}\nModels: {', '.join(args.models)}",
@@ -573,18 +674,38 @@ Examples:
         evaluator.print_summary()
         evaluator.export(export_format=args.export_format)
 
+        summary = summarize_results(evaluator.results)
+
+        if args.require_known_costs and not summary["cost_complete"]:
+            console.print(
+                "[bold red]Error:[/] Unknown cost encountered with --require-known-costs"
+            )
+            return 1
+
+        if not args.allow_failures and (
+            summary["failed_judge_count"] > 0
+            or any(
+                r.judge_score is None or r.judge_score < 0.0 for r in evaluator.results
+            )
+        ):
+            console.print(
+                "[bold red]Error:[/] Evaluation contains judge errors or failures"
+            )
+            return 1
+
         console.print("\n[bold cyan]✨ Evaluation complete![/]")
         console.print("[dim]Run 'view-dashboard' for interactive dashboard[/]")
+        return 0
 
-    except FileNotFoundError as e:
-        console.print(f"[bold red]Error:[/] {e}")
-        console.print(
-            "[yellow]Make sure config.yaml exists and test cases are present[/]"
-        )
+    except (FileNotFoundError, OSError, ValueError) as e:
+        console.print(f"[bold red]Configuration error:[/] {e}")
+        logger.error(f"Configuration error: {e}")
+        return 2
     except Exception as e:
         console.print(f"[bold red]Fatal error:[/] {e}")
         logger.exception("Fatal error during evaluation")
+        return 1
 
 
 if __name__ == "__main__":
-    main()
+    sys.exit(main())
