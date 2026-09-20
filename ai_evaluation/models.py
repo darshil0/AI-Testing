@@ -19,19 +19,31 @@ try:
 except ImportError:
     ANTHROPIC_AVAILABLE = False
 
+import warnings
+
+GEMINI_GENAI_AVAILABLE = False
+GEMINI_LEGACY_AVAILABLE = False
+genai = None
+types = None
+genai_legacy = None
+
 try:
-    from google import genai
-    from google.genai import types
+    with warnings.catch_warnings():
+        warnings.simplefilter("ignore")
+        from google import genai
+        from google.genai import types
 
     GEMINI_GENAI_AVAILABLE = True
-except ImportError:
+except Exception:
     GEMINI_GENAI_AVAILABLE = False
 
 try:
-    import google.generativeai as genai_legacy
+    with warnings.catch_warnings():
+        warnings.simplefilter("ignore")
+        import google.generativeai as genai_legacy
 
     GEMINI_LEGACY_AVAILABLE = True
-except ImportError:
+except Exception:
     GEMINI_LEGACY_AVAILABLE = False
 
 GEMINI_AVAILABLE = GEMINI_GENAI_AVAILABLE or GEMINI_LEGACY_AVAILABLE
@@ -75,12 +87,11 @@ class BaseModel:
         if input_tokens is None or output_tokens is None:
             return None
 
-        pricing = pricing_config[self.model_name]
-        if not isinstance(pricing, dict):
+        if not isinstance(prices, dict):
             return None
 
-        input_price = pricing.get("input")
-        output_price = pricing.get("output")
+        input_price = prices.get("input")
+        output_price = prices.get("output")
         if input_price is None or output_price is None:
             return None
 
@@ -223,17 +234,25 @@ class GeminiModel(BaseModel):
 
     def __init__(self, model_name: str, config: Dict[str, Any]) -> None:
         super().__init__(model_name, config)
-        api_key = os.getenv("GOOGLE_API_KEY")
-        if not GEMINI_AVAILABLE or not api_key:
+        if not GEMINI_AVAILABLE:
             raise ValueError(
-                "Google API key missing or google-genai / google-generativeai not installed."
+                "Google GenAI SDK is not installed. Install with: pip install 'ai-evaluation-framework[gemini]'"
             )
+        api_key = os.getenv("GOOGLE_API_KEY")
+        if not api_key:
+            raise ValueError("GOOGLE_API_KEY environment variable is missing.")
         if GEMINI_GENAI_AVAILABLE:
-            self.client = genai.Client(api_key=api_key)
+            target_genai = genai
+            if target_genai is None:
+                from google import genai as target_genai
+            self.client = target_genai.Client(api_key=api_key)
             self.use_new_sdk = True
         else:
-            genai_legacy.configure(api_key=api_key)
-            self.client = genai_legacy.GenerativeModel(self.model_name)
+            target_legacy = genai_legacy
+            if target_legacy is None:
+                import google.generativeai as target_legacy
+            target_legacy.configure(api_key=api_key)
+            self.client = target_legacy.GenerativeModel(self.model_name)
             self.use_new_sdk = False
 
     @retry(

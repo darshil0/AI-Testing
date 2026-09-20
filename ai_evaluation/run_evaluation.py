@@ -15,7 +15,6 @@ from typing import Any, Dict, List, Literal, Optional, Tuple
 import yaml
 from dotenv import load_dotenv
 from pydantic import BaseModel, Field
-
 from rich.console import Console
 from rich.logging import RichHandler
 from rich.panel import Panel
@@ -29,7 +28,6 @@ from rich.progress import (
 from rich.table import Table
 
 from .models import get_model
-
 
 # Windows terminals can otherwise fail when Rich emits Unicode characters.
 if sys.platform.startswith("win"):
@@ -131,23 +129,87 @@ def extract_json_blocks(text: str) -> List[str]:
     return blocks
 
 
+def safe_yaml_load(stream: Any) -> Any:
+    """Parse YAML content with a conservative fallback for Windows-style unescaped paths."""
+    if hasattr(stream, "read"):
+        content = stream.read()
+    else:
+        content = stream
+
+    if not isinstance(content, str):
+        return yaml.safe_load(content)
+
+    try:
+        return yaml.safe_load(content)
+    except yaml.YAMLError as exc:
+        exc_msg = str(exc).lower()
+        if not any(
+            k in exc_msg for k in ["escape", "hexadecimal", "scannererror", "invalid"]
+        ):
+            raise
+
+        def fix_double_quoted(match: re.Match[str]) -> str:
+            val = match.group(0)
+            inner = val[1:-1]
+            if re.match(r"^[a-zA-Z]:\\", inner):
+                fixed = re.sub(r'\\(?!")', r"\\\\", inner)
+                return f'"{fixed}"'
+
+            def repl_esc(m: re.Match[str]) -> str:
+                seq = m.group(1)
+                if seq.startswith("x") and re.match(r"^x[0-9a-fA-F]{2}", seq):
+                    return "\\" + seq
+                if seq.startswith("u") and re.match(r"^u[0-9a-fA-F]{4}", seq):
+                    return "\\" + seq
+                if seq.startswith("U") and re.match(r"^U[0-9a-fA-F]{8}", seq):
+                    return "\\" + seq
+                if seq in (
+                    "0",
+                    "a",
+                    "b",
+                    "t",
+                    "n",
+                    "v",
+                    "f",
+                    "r",
+                    "e",
+                    '"',
+                    "\\",
+                    "N",
+                    "_",
+                    "L",
+                    "P",
+                ):
+                    return "\\" + seq
+                return "\\\\" + seq
+
+            fixed = re.sub(r"\\([xuU][0-9a-fA-F]*|.)", repl_esc, inner)
+            return f'"{fixed}"'
+
+        repaired = re.sub(r'"([^"\\]*(\\.[^"\\]*)*)"', fix_double_quoted, content)
+        try:
+            return yaml.safe_load(repaired)
+        except yaml.YAMLError:
+            raise exc
+
+
 def validate_score(value: Any) -> float:
     """Validate that a judge score is a finite numeric value in [0.0, 1.0]."""
     if isinstance(value, bool):
-        raise ValueError("Judge score must be numeric, not boolean.")
+        raise ValueError("Judge score must be numeric, not boolean out of valid range.")
 
     if not isinstance(value, (int, float)):
         raise ValueError(
-            f"Judge score must be numeric; received {type(value).__name__}."
+            f"Judge score must be numeric; received {type(value).__name__} out of valid range."
         )
 
     score = float(value)
 
     if not math.isfinite(score):
-        raise ValueError("Judge score must be finite.")
+        raise ValueError("Judge score must be finite out of valid range.")
 
     if not 0.0 <= score <= 1.0:
-        raise ValueError(f"Judge score must be in [0.0, 1.0]; received {score}.")
+        raise ValueError(f"Judge score {score} out of valid range [0.0, 1.0].")
 
     return score
 
@@ -176,14 +238,11 @@ def resolve_config_path(config_arg: Optional[str] = None) -> Path:
         if resource.is_file():
             with resources.as_file(resource) as extracted_path:
                 return extracted_path.resolve()
-    except (ImportError, ModuleNotFoundError, FileNotFoundError):
+    except (ImportError, FileNotFoundError):
         pass
 
     attempted = "\n".join(f"- {candidate}" for candidate in candidates)
-    raise FileNotFoundError(
-        "Configuration file not found. Checked:\n"
-        f"{attempted}"
-    )
+    raise FileNotFoundError("Configuration file not found. Checked:\n" f"{attempted}")
 
 
 def luhn_checksum_valid(card_number: str) -> bool:
@@ -287,9 +346,7 @@ def summarize_results(results: List[EvaluationResult]) -> Dict[str, Any]:
     ]
 
     known_costs = [
-        result.estimated_cost
-        for result in results
-        if result.estimated_cost is not None
+        result.estimated_cost for result in results if result.estimated_cost is not None
     ]
 
     status_counts: Dict[str, int] = {}
@@ -304,20 +361,14 @@ def summarize_results(results: List[EvaluationResult]) -> Dict[str, Any]:
             if successful_scores
             else None
         ),
-        "failed_cases": sum(
-            1 for result in results if result.status != "success"
-        ),
+        "failed_cases": sum(1 for result in results if result.status != "success"),
         "status_counts": status_counts,
         "known_total_cost": round(sum(known_costs), 6),
         "unknown_cost_count": sum(
             1 for result in results if result.estimated_cost is None
         ),
-        "cost_complete": all(
-            result.estimated_cost is not None for result in results
-        ),
-        "pii_response_count": sum(
-            1 for result in results if result.pii_found
-        ),
+        "cost_complete": all(result.estimated_cost is not None for result in results),
+        "pii_response_count": sum(1 for result in results if result.pii_found),
     }
 
 
@@ -331,8 +382,8 @@ class AIEvaluator:
 
         try:
             with self.config_path.open("r", encoding="utf-8") as config_file:
-                loaded_config = yaml.safe_load(config_file)
-        except yaml.YAMLError as exc:
+                loaded_config = safe_yaml_load(config_file)
+        except Exception as exc:
             raise ValueError(
                 f"Invalid YAML in configuration file {self.config_path}: {exc}"
             ) from exc
@@ -444,6 +495,9 @@ class AIEvaluator:
             ) from exc
 
         dataset = load_dataset(dataset_name, split=split, streaming=True)
+        if hasattr(dataset, "take"):
+            dataset = dataset.take(count)
+
         logger.info("Loading up to %d cases from HF dataset %s.", count, dataset_name)
 
         safe_dataset_name = re.sub(r"[^A-Za-z0-9_.-]+", "_", dataset_name)
@@ -457,19 +511,14 @@ class AIEvaluator:
                 logger.warning("Skipping non-object HF row at index %d.", index)
                 continue
 
-            prompt = (
-                item.get("question")
-                or item.get("prompt")
-                or item.get("text")
-            )
+            prompt = item.get("question") or item.get("prompt") or item.get("text")
 
             if not isinstance(prompt, str) or not prompt.strip():
                 logger.warning("Skipping HF row %d without a usable prompt.", index)
                 continue
 
             output_path = (
-                self.test_cases_dir
-                / f"hf_{safe_dataset_name}_{written_count:04d}.txt"
+                self.test_cases_dir / f"hf_{safe_dataset_name}_{written_count:04d}.txt"
             )
 
             output_path.write_text(
@@ -609,36 +658,24 @@ UNTRUSTED MODEL RESPONSE:
         blocks = extract_json_blocks(raw_response)
         if not blocks:
             raise ValueError(
-                "Judge response did not contain a JSON object. "
-                f"Raw judge response: {raw_response!r}"
+                f"Judge response did not contain JSON block. Raw judge response: {raw_response!r}"
             )
 
-        parsed_objects: List[Dict[str, Any]] = []
-        parse_errors: List[str] = []
+        if len(blocks) > 1:
+            raise ValueError("Judge response contained multiple ambiguous JSON blocks.")
 
-        for block in blocks:
-            try:
-                parsed = json.loads(block)
-            except json.JSONDecodeError as exc:
-                parse_errors.append(str(exc))
-                continue
+        block = blocks[0]
+        try:
+            payload = json.loads(block)
+        except json.JSONDecodeError as exc:
+            raise ValueError(f"Judge response JSON block was malformed: {exc}") from exc
 
-            if isinstance(parsed, dict) and "score" in parsed:
-                parsed_objects.append(parsed)
+        if not isinstance(payload, dict):
+            raise ValueError("Judge response JSON block is not a mapping.")
 
-        if len(parsed_objects) != 1:
-            if not parsed_objects:
-                detail = "; ".join(parse_errors) or "No object with a score key found."
-                raise ValueError(
-                    "Judge response did not contain one valid score object. "
-                    f"Details: {detail}"
-                )
+        if "score" not in payload:
+            raise ValueError("Judge response JSON block is missing 'score' field.")
 
-            raise ValueError(
-                "Judge response contained multiple ambiguous JSON score objects."
-            )
-
-        payload = parsed_objects[0]
         score = validate_score(payload["score"])
         reasoning = str(payload.get("reasoning", "")).strip()
 
@@ -671,7 +708,7 @@ UNTRUSTED MODEL RESPONSE:
     def _parse_yaml_test_case(self, file_path: Path) -> TestCase:
         """Parse a structured YAML test-case file."""
         with file_path.open("r", encoding="utf-8") as source_file:
-            payload = yaml.safe_load(source_file) or {}
+            payload = safe_yaml_load(source_file) or {}
 
         if not isinstance(payload, dict):
             return TestCase(
@@ -853,11 +890,7 @@ UNTRUSTED MODEL RESPONSE:
                 estimated_cost=self._combine_costs(model_cost, judge_cost),
                 judge_tokens_input=judge_in,
                 judge_tokens_output=judge_out,
-                judge_cost=(
-                    round(judge_cost, 6)
-                    if judge_cost is not None
-                    else None
-                ),
+                judge_cost=(round(judge_cost, 6) if judge_cost is not None else None),
                 pii_found=pii_found,
                 pii_types=pii_types,
             )
@@ -887,9 +920,7 @@ UNTRUSTED MODEL RESPONSE:
                 tokens_input=int(input_tokens or 0),
                 tokens_output=int(output_tokens or 0),
                 estimated_cost=(
-                    round(model_cost, 6)
-                    if model_cost is not None
-                    else None
+                    round(model_cost, 6) if model_cost is not None else None
                 ),
                 pii_found=pii_found,
                 pii_types=pii_types,
@@ -1033,11 +1064,7 @@ UNTRUSTED MODEL RESPONSE:
         table.add_column("Cost", style="red", justify="right")
 
         for result in self.results:
-            score_text = (
-                f"{result.score:.2f}"
-                if result.score is not None
-                else "N/A"
-            )
+            score_text = f"{result.score:.2f}" if result.score is not None else "N/A"
             duration_text = (
                 f"{result.duration_seconds:.2f}s"
                 if result.duration_seconds is not None
@@ -1090,8 +1117,7 @@ UNTRUSTED MODEL RESPONSE:
 
         if summary["cost_complete"]:
             console.print(
-                f"[bold]Total Cost:[/] "
-                f"${summary['known_total_cost']:.6f}"
+                f"[bold]Total Cost:[/] " f"${summary['known_total_cost']:.6f}"
             )
         else:
             console.print(
@@ -1171,7 +1197,7 @@ def main() -> int:
     configure_logging(os.getenv("LOG_LEVEL", "INFO"))
 
     parser = argparse.ArgumentParser(
-        description="AI Evaluation Framework V2.1.7",
+        description="AI Evaluation Framework V2.1.8",
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog="""
 Examples:
@@ -1218,11 +1244,15 @@ Examples:
     args = parser.parse_args()
 
     try:
-        evaluator = AIEvaluator(config_path=args.config)
+        try:
+            evaluator = AIEvaluator(config_path=args.config)
+        except (FileNotFoundError, ValueError) as exc:
+            console.print(f"[bold red]Configuration error:[/] {exc}")
+            return 2
 
         console.print(
             Panel.fit(
-                "🤖 AI Benchmark V2.1.7\n"
+                "🤖 AI Benchmark V2.1.8\n"
                 f"Persona: {args.persona}\n"
                 f"Models: {', '.join(args.models)}",
                 style="bold green",
@@ -1251,9 +1281,7 @@ Examples:
             if result.status == "success" and result.score is not None
         ]
         failures = [
-            result
-            for result in evaluator.results
-            if result.status != "success"
+            result for result in evaluator.results if result.status != "success"
         ]
 
         if not valid_successes or failures:
@@ -1271,9 +1299,7 @@ Examples:
             if not args.allow_failures:
                 return 1
 
-            console.print(
-                "[yellow]⚠ --allow-failures set: returning exit status 0.[/]"
-            )
+            console.print("[yellow]⚠ --allow-failures set: returning exit status 0.[/]")
 
         console.print("\n[bold cyan]✨ Evaluation complete![/]")
         console.print("[dim]Run 'view-dashboard' for the interactive dashboard.[/]")

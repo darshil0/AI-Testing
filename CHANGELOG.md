@@ -9,38 +9,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
-- **`EvaluationResult` Score Field Conflict**: Removed the conflicting `score` property that shadowed the Pydantic `score` field. `score` is now the canonical evaluation score, preventing inconsistent validation, assignment, serialization, and summary calculations.
-- **Duplicate Result Status Declaration**: Removed the duplicate unrestricted `status: str` declaration that overrode the intended `Literal` type. Evaluation results now enforce the supported status values: `success`, `model_error`, `judge_error`, `invalid_case`, `skipped`, and `interrupted`.
-- **Successful Judge Evaluation Failure**: Fixed `process_one()` referencing an undefined `judge_status` variable, which caused otherwise successful judge evaluations to fail with `NameError` and be reported as `judge_error`.
-- **Legacy Score Compatibility**: Corrected compatibility handling between `score`, `judge_score`, and the legacy `cost` field. Existing results that contain only `judge_score` now correctly populate `score`, while newly generated results retain a compatible `judge_score` mirror.
-- **Unreachable `model_post_init` Logic**: Removed the incorrectly indented `model_post_init()` method nested inside `resolve_config_path()` after a `raise FileNotFoundError`. The method was unreachable and never executed.
-- **Parallel Rich Progress Updates**: Removed worker-thread calls to `Progress.advance()`. Progress and incremental result persistence are now updated on the main thread as evaluation futures complete, avoiding concurrent Rich UI access issues.
-- **Unexpected Parallel Worker Failures**: Added defensive handling for unexpected exceptions raised by parallel workers, producing structured `model_error` results instead of allowing the evaluation suite to terminate without a result record.
-- **Malformed Configuration Handling**: Added explicit validation for empty, invalid, and non-mapping YAML configuration roots, as well as invalid `directories`, `judge`, and PII configuration sections.
-- **Configuration Path Resolution**: Consolidated and strengthened config-path discovery for explicit paths, project-relative defaults, package-local configuration, and user-home path expansion.
-- **Judge Score Validation**: Centralized strict validation of judge scores, rejecting boolean values, non-numeric values, non-finite values (`NaN` and infinity), and scores outside the inclusive `0.0` to `1.0` range.
-- **Judge JSON Ambiguity Handling**: Improved judge response parsing to reject missing or ambiguous JSON score objects while continuing to safely support braces inside quoted JSON string values.
-- **Judge Prompt Injection Boundary**: Wrapped original prompts and evaluated model outputs in explicit XML-style delimiters and strengthened the instruction that content within `<untrusted_model_response>` is untrusted data, not executable instructions.
-- **Text Test Case Parsing**: Simplified text metadata parsing so only contiguous leading `Category:`, `Difficulty:`, and `Expectations:` headers are consumed, while matching content later in the prompt body is preserved.
-- **YAML Test Case Validation**: Added clear structured error results for YAML files whose root is not an object, whose schema is invalid, or whose `prompt` is empty.
-- **Invalid Test Case Execution**: Ensured malformed and empty test cases return `invalid_case` before model or judge adapters are initialized or called.
-- **Hugging Face Dataset Importing**: Improved dataset ingestion to validate `count`, skip non-object or promptless rows, sanitize generated filenames, and accurately report the number of written test cases.
-- **Incremental Results Corruption Risk**: Changed `latest_results.json` persistence to use a temporary file followed by replacement, reducing the chance of a corrupted dashboard file during interruptions or partial writes.
-- **Pydantic Serialization Compatibility**: Added centralized model serialization that supports both Pydantic v2 `model_dump()` and Pydantic v1 `dict()` APIs for JSON, CSV, and incremental result exports.
-- **CSV Nested Field Export**: Ensured list and dictionary fields such as `pii_types` and metadata are JSON-serialized before writing CSV rows.
-- **Cost Validation and Reporting**: Added finite-value validation for adapter cost values and prevented a partial model-or-judge cost from being presented as a complete successful evaluation cost.
-- **Duration Measurement**: Replaced `time.time()` duration measurement with `time.perf_counter()` for more reliable elapsed-time tracking.
-- **Interrupt Persistence**: Ensured completed result records are saved to `latest_results.json` when an evaluation is interrupted with `Ctrl+C`.
-
-### Changed
-
-- **Canonical Score Schema**: Standardized `score` as the canonical result field while preserving `judge_score` as a backward-compatible serialized mirror for dashboards and existing result files.
-- **Timezone-Aware Result Timestamps**: Result timestamps now use timezone-aware UTC ISO 8601 values rather than naive local timestamps.
-- **Deterministic Test Discovery**: Standardized `.txt`, `.yaml`, and `.yml` test-case discovery with deterministic case-insensitive filename ordering.
-- **Worker Count Validation**: Validated configured `max_workers` values and defaulted invalid values to a safe worker count.
-- **Cost Completeness Semantics**: Successful evaluation totals are now reported only when both model and judge costs are known; summaries explicitly identify incomplete or unknown costs.
-- **CLI Exit Flow**: Refactored CLI error handling to return exit codes consistently from `main()`, including exit code `130` for user interruption.
-- **Summary Reporting**: Consolidated statistics generation so terminal summaries consistently report scored successes, status counts, known versus unknown costs, average score, and PII response counts.
+- **Pricing Calculation**: Fixed `BaseModel._calculate_cost` to index using the resolved pricing configuration dictionary instead of re-indexing `self.model_name`. Provider-qualified identifiers (such as `openai:gpt-4o`) now resolve pricing correctly without raising `KeyError`. Unavailable pricing returns `None`.
+- **Google Provider Imports**: Applied lazy and guarded warning-suppression imports for optional Google SDKs to prevent import-time warnings or failures in environments without Google dependencies. Added concise, actionable error messages when invoking `GeminiModel`.
+- **Evaluator Exception Redundancies**: Removed redundant `ImportError` / `ModuleNotFoundError` exception catches in `resolve_config_path()`.
+- **Judge Score Validation**: Updated `validate_score()` error messages to explicitly include `"out of valid range"`.
+- **Deterministic Judge JSON Parsing**: Ensured judge output parsing requires exactly one valid JSON block/object. Missing JSON raises `ValueError("Judge response did not contain JSON block")`, and multiple JSON blocks are rejected as ambiguous.
+- **Hugging Face Dataset Limit**: In `load_from_hf`, streaming datasets now use `.take(count)` to limit iteration without reading entire datasets into memory.
+- **CLI Exit Codes**: CLI execution cleanly returns exit status code 2 on configuration errors, non-zero on evaluation failures or interruptions, and 0 on successful suite completion.
+- **Windows YAML Compatibility**: Added a conservative `safe_yaml_load` fallback for Windows paths with unescaped backslashes in YAML files across `run_evaluation.py`, `analytics.py`, and `dashboard.py`.
+- **Optional Dashboard Dependencies**: Guarded `dashboard.py` imports so importing `ai_evaluation.dashboard` succeeds when Streamlit or pandas are absent, and raises clear installation instructions (`pip install 'ai-evaluation-framework[dashboard]'`) when executed.
+- **Version Synchronization**: Synchronized package version `2.1.8` across package metadata, CLI banners, dashboard text, and documentation.
 
 ## [2.1.7] - 2026-07-21
 

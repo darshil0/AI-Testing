@@ -1,7 +1,35 @@
 # AI-Testing Codebase Fixes - Summary
 
 ## Overview
-This document provides a comprehensive history of the issues identified, refactored, and resolved in the AI-Testing codebase, tracking the evolution of the framework from its early versions up to **Version 2.1.7**.
+This document provides a comprehensive history of the issues identified, refactored, and resolved in the AI-Testing codebase, tracking the evolution of the framework from its early versions up to **Version 2.1.8**.
+
+---
+
+## 🚀 Critical Fixes in Version 2.1.8
+
+### 1. Pricing Calculation & Provider Lookup
+- Fixed `BaseModel._calculate_cost` to use resolved pricing configuration mappings directly instead of re-indexing `self.model_name`.
+- Supported provider-qualified model identifiers (e.g. `openai:gpt-4o`) without raising `KeyError`. Missing or unconfigured pricing returns `None`.
+
+### 2. Google Provider Import Guarding
+- Wrapped optional Google SDK imports with lazy/suppressed warning handling to prevent import warnings and failures in environments without Google dependencies.
+- Added concise, actionable error messages when invoking `GeminiModel` without dependencies installed or without `GOOGLE_API_KEY`.
+
+### 3. Strict Deterministic Judge Response Parsing & Score Validation
+- Enforced strict single JSON block extraction for judge evaluations. Missing JSON raises `ValueError("Judge response did not contain JSON block")` and multiple candidate JSON blocks are rejected as ambiguous.
+- Score range errors explicitly include `"out of valid range"`.
+
+### 4. Hugging Face Dataset Bounding
+- In `load_from_hf`, streaming datasets now use `.take(count)` to limit iteration without reading entire datasets into memory.
+
+### 5. CLI Exit Codes & Error Propagation
+- CLI execution cleanly returns exit status code 2 on configuration errors, non-zero on evaluation failures or interrupts, and 0 on successful suite completion.
+
+### 6. Portable Windows Path Fallback in YAML Configs
+- Standard YAML parsing handles escaped backslashes (`\n`, `\t`, `\uXXXX`). Unescaped Windows-style paths (e.g. `"C:\Users\example\results"`) fall back safely on escape scanning errors across `run_evaluation.py`, `analytics.py`, and `dashboard.py`.
+
+### 7. Optional Dashboard Dependency Safety
+- Guarded `ai_evaluation/dashboard.py` imports so importing the module without Streamlit or pandas succeeds, raising actionable install instructions (`pip install "ai-evaluation-framework[dashboard]"`) when executed.
 
 ---
 

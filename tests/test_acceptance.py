@@ -109,7 +109,7 @@ def test_acceptance_6_config_path_propagation(tmp_path):
         f"""
 directories:
   test_cases: "test_cases"
-  results: "{custom_results.resolve()}"
+  results: "{custom_results.as_posix()}"
 """,
         encoding="utf-8",
     )
@@ -134,8 +134,8 @@ def test_acceptance_9_determinism(tmp_path):
     custom_config.write_text(
         f"""
 directories:
-  test_cases: "{tc_dir.resolve()}"
-  results: "{tmp_path.resolve()}"
+  test_cases: "{tc_dir.as_posix()}"
+  results: "{tmp_path.as_posix()}"
 """,
         encoding="utf-8",
     )

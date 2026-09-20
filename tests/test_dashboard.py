@@ -32,7 +32,7 @@ def test_dashboard_flow(tmp_path):
     config_file.write_text(
         f"""
 directories:
-  results: "{results_dir.resolve()}"
+  results: "{results_dir.as_posix()}"
 """,
         encoding="utf-8",
     )
