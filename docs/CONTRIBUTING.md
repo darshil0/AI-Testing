@@ -1,6 +1,8 @@
 # Contributing to AI-Testing
 
-Thank you for your interest in contributing! This document provides guidelines to help you through the process of improving this framework.
+Thank you for your interest in contributing! This document provides guidelines to help you navigate the process of improving and extending this framework.
+
+---
 
 ## Table of Contents
 
@@ -11,12 +13,13 @@ Thank you for your interest in contributing! This document provides guidelines t
 * [Testing](#testing)
 * [Submitting Changes](#submitting-changes)
 * [Adding New Features](#adding-new-features)
+* [License](#license)
 
 ---
 
 ## Code of Conduct
 
-By participating, you agree to maintain a respectful and inclusive environment. We value **Respect**, **Collaboration**, **Quality**, and **Openness**.
+By participating in this project, you agree to maintain a respectful, inclusive, and collaborative environment. We value **Respect**, **Collaboration**, **Quality**, and **Openness**.
 
 ---
 
@@ -25,25 +28,25 @@ By participating, you agree to maintain a respectful and inclusive environment. 
 ### 1. Fork and Clone
 
 ```bash
-# Fork on GitHub, then clone your fork
-git clone https://github.com/YOUR_USERNAME/AI-Testing.git
+# Fork on GitHub, then clone your repository
+git clone [https://github.com/YOUR_USERNAME/AI-Testing.git](https://github.com/YOUR_USERNAME/AI-Testing.git)
 cd AI-Testing
 
-# Add upstream remote to stay synced
-git remote add upstream https://github.com/darshil0/AI-Testing.git
+# Add upstream remote to stay synchronized
+git remote add upstream [https://github.com/darshil0/AI-Testing.git](https://github.com/darshil0/AI-Testing.git)
 
 ```
 
 ### 2. Environment Setup
 
-We use an editable installation to ensure changes are reflected immediately.
+Use an editable installation so local changes take effect immediately across the environment:
 
 ```bash
 # Create and activate virtual environment
 python3 -m venv venv
-source venv/bin/activate  # Windows: venv\Scripts\activate
+source venv/bin/activate  # On Windows: venv\Scripts\activate
 
-# Install the project and all development dependencies in editable mode
+# Install the project and development dependencies in editable mode
 pip install -e ".[dev]"
 
 ```
@@ -63,30 +66,37 @@ run-evaluation --models simulated:default
 
 ## Making Changes
 
-### 1. Branching
+### 1. Branching Strategy
+
+Maintain a clean Git timeline by creating dedicated branches off `main`:
 
 ```bash
-# Sync with upstream
+# Sync local main with upstream
 git checkout main
 git pull upstream main
 
-# Create a feature branch
+# Create a topic branch
 git checkout -b feature/your-feature-name
 
 ```
 
-* `feature/` - New features
-* `fix/` - Bug fixes
-* `docs/` - Documentation changes
+Use standard branch naming prefixes:
+
+* `feature/` — New features or enhancements
+* `fix/` — Bug fixes
+* `docs/` — Documentation updates
 
 ### 2. Testing Your Changes
 
 ```bash
-# Run with coverage report
+# Run tests with a test coverage report
 pytest --cov=ai_evaluation
 
 # Format code before committing
 black .
+
+# Run style checks
+flake8 .
 
 ```
 
@@ -96,19 +106,21 @@ black .
 
 ### Python Style
 
-We follow **PEP 8** and use **Black** for formatting.
+We follow **PEP 8** standards and enforce formatting with **Black**:
 
-* **Line Length**: 88 characters.
-* **Docstrings**: Google-style docstrings are required for all public methods.
+* **Line Length**: Maximum 88 characters.
+* **Docstrings**: Google-style docstrings are required for all public classes, functions, and methods.
+* **Type Hints**: Type annotations are encouraged for public signatures.
 
 ### Commit Messages
 
-We follow conventional commits:
+Use standard conventional commit prefixes:
 
-* `feat:` New feature for the user.
-* `fix:` Bug fix for the user.
-* `docs:` Changes to the documentation.
-* `test:` Adding missing tests or correcting existing tests.
+* `feat:` New feature for the framework
+* `fix:` Bug fix
+* `docs:` Documentation updates
+* `test:` Adding or updating tests
+* `refactor:` Code refactoring without behavioral changes
 
 ---
 
@@ -116,16 +128,18 @@ We follow conventional commits:
 
 ### Writing Tests
 
-Tests are located in `tests/`. We prioritize unit tests that mock external API calls to keep the suite fast and cost-effective.
+All test files are located in the `tests/` directory. Unit tests should mock external API endpoints (e.g., OpenAI, Anthropic, Gemini) to prevent unnecessary billing and ensure fast, deterministic CI execution.
 
 ```python
 def test_pii_scanner():
-    """Example test for PII detection."""
+    """Example test for PII detection logic."""
     from ai_evaluation.run_evaluation import AIEvaluator
+
     evaluator = AIEvaluator()
-    found, types = evaluator._pii_scan("My email is test@example.com")
+    found, pii_types = evaluator._pii_scan("My email is test@example.com")
+    
     assert found is True
-    assert "email" in types
+    assert "email" in pii_types
 
 ```
 
@@ -133,12 +147,18 @@ def test_pii_scanner():
 
 ## Submitting Changes
 
-### 1. Pull Request Process
+### Pull Request Process
 
-1. Push your branch: `git push origin feature/your-feature-name`
-2. Open a Pull Request (PR) against the `main` branch.
-3. Ensure the **CI/CD pipeline** (GitHub Actions) passes.
-4. Address any feedback from maintainers.
+1. Push your branch to your fork:
+```bash
+git push origin feature/your-feature-name
+
+```
+
+
+2. Open a Pull Request (PR) against the `main` branch of `darshil0/AI-Testing`.
+3. Verify that all **GitHub Actions CI/CD workflows** complete successfully.
+4. Respond promptly to code review feedback from project maintainers.
 
 ---
 
@@ -147,8 +167,8 @@ def test_pii_scanner():
 ### Adding a New Model Provider
 
 1. **Inherit**: Create a new class in `ai_evaluation/models.py` inheriting from `BaseModel`.
-2. **Factory**: Register your provider in the `get_model()` function.
-3. **Pricing**: Update `ai_evaluation/config.yaml` with the model's cost per 1M tokens.
+2. **Factory**: Register your provider in the `get_model()` factory function.
+3. **Pricing**: Update `ai_evaluation/config.yaml` with the provider's token pricing configuration.
 
 ---
 
