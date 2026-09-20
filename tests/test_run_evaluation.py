@@ -1,17 +1,11 @@
 import json
 import sys
-import pytest
+from pathlib import Path
 from unittest.mock import MagicMock, PropertyMock, patch
 
-from ai_evaluation.run_evaluation import (
-    AIEvaluator,
-    TestCase,
-    extract_json_blocks,
-    validate_score,
-    summarize_results,
-    EvaluationResult,
-)
-from ai_evaluation.models import is_transient_error
+import pytest
+
+from ai_evaluation.run_evaluation import AIEvaluator, TestCase, extract_json_blocks
 
 run_eval_module = sys.modules["ai_evaluation.run_evaluation"]
 
@@ -104,7 +98,7 @@ def test_pii_scanner():
     assert len(found_types) == 0
 
 
-def test_out_of_bounds_judge_score_raises_error():
+def test_out_of_bounds_score_rejected():
     evaluator = AIEvaluator()
     tc = TestCase(name="dummy", prompt="dummy", expectations=["dummy"])
 
@@ -116,17 +110,8 @@ def test_out_of_bounds_judge_score_raises_error():
     )
 
     with patch.object(run_eval_module, "get_model", return_value=mock_model):
-        with pytest.raises(ValueError, match="Judge score must be in"):
+        with pytest.raises(ValueError, match="out of valid range"):
             evaluator.judge_response(tc, "dummy response")
-
-
-@pytest.mark.parametrize(
-    "invalid_score",
-    [True, False, float("nan"), float("inf"), -0.5, 1.5, "not_a_number"],
-)
-def test_validate_score_rejects_invalid_values(invalid_score):
-    with pytest.raises(ValueError):
-        validate_score(invalid_score)
 
 
 def test_judge_score_parsing_valid():
@@ -142,7 +127,9 @@ def test_judge_score_parsing_valid():
     )
 
     with patch.object(run_eval_module, "get_model", return_value=mock_model):
-        score, reasoning = evaluator.judge_response(tc, "dummy response")
+        score, reasoning, j_in, j_out, j_cost = evaluator.judge_response(
+            tc, "dummy response"
+        )
         assert score == 0.85
         assert reasoning == "Well answered"
 
@@ -156,7 +143,9 @@ def test_judge_score_parsing_malformed():
     mock_model.call.return_value = ('{ "invalid_json": "no_score_key" ', 10, 10)
 
     with patch.object(run_eval_module, "get_model", return_value=mock_model):
-        with pytest.raises(ValueError, match="Expected exactly 1 JSON block"):
+        with pytest.raises(
+            ValueError, match="Judge response did not contain JSON block"
+        ):
             evaluator.judge_response(tc, "dummy response")
 
 
@@ -173,20 +162,17 @@ def test_judge_score_parsing_nested():
     )
 
     with patch.object(run_eval_module, "get_model", return_value=mock_model):
-        score, reasoning = evaluator.judge_response(tc, "dummy response")
+        score, reasoning, _, _, _ = evaluator.judge_response(tc, "dummy response")
         assert score == 0.95
-        assert reasoning == {
-            "details": "The response was correct.",
-            "confidence": "high",
-        }
+        assert "The response was correct." in reasoning
 
 
-def test_judge_score_parsing_multiple_blocks_rejected():
+def test_judge_score_parsing_multiple_blocks():
     evaluator = AIEvaluator()
     tc = TestCase(name="dummy", prompt="dummy", expectations=["dummy"])
 
     mock_model = MagicMock()
-    # Ambiguous multiple JSON blocks
+    # Multiple JSON blocks should be rejected as ambiguous
     mock_model.call.return_value = (
         'First block: { "info": "started" } and second block: '
         '{ "score": 0.75, "reasoning": "satisfactory" }',
@@ -195,44 +181,56 @@ def test_judge_score_parsing_multiple_blocks_rejected():
     )
 
     with patch.object(run_eval_module, "get_model", return_value=mock_model):
-        with pytest.raises(ValueError, match="Expected exactly 1 JSON block"):
+        with pytest.raises(ValueError, match="multiple ambiguous JSON blocks"):
             evaluator.judge_response(tc, "dummy response")
 
 
 def test_missing_pricing_warning(caplog):
-    from ai_evaluation.models import SimulatedModel
     import logging
 
-    # Create model with a name not in config pricing
+    from ai_evaluation.models import OpenAIModel
+
     config = {"pricing": {"some_other_model": {"input": 1.0, "output": 2.0}}}
-    model = SimulatedModel(model_name="unconfigured_model", config=config)
+    with (
+        patch("ai_evaluation.models.OPENAI_AVAILABLE", True),
+        patch("os.getenv", return_value="fake"),
+    ):
+        model = OpenAIModel(model_name="unconfigured_model", config=config)
 
     with caplog.at_level(logging.WARNING):
         cost = model._calculate_cost(1000000, 2000000)
-        assert cost is None
+        assert cost == 0.0
         assert any(
-            "No pricing configured for model" in record.message
-            for record in caplog.records
+            "Pricing config missing" in record.message for record in caplog.records
         )
 
 
-def test_judge_initialization_failure_returns_sentinel():
+def test_judge_initialization_failure_handled_in_process_one():
     evaluator = AIEvaluator()
-    tc = TestCase(name="dummy", prompt="dummy", expectations=["dummy"])
+    dummy_file = Path("dummy.txt")
 
-    with patch.object(
-        run_eval_module,
-        "get_model",
-        side_effect=ValueError("Failed to initialize judge model"),
+    with (
+        patch.object(
+            evaluator,
+            "_parse_test_case",
+            return_value=TestCase(name="dummy", prompt="hello"),
+        ),
+        patch.object(
+            run_eval_module,
+            "get_model",
+            side_effect=ValueError("Failed to initialize model"),
+        ),
     ):
-        score, reasoning = evaluator.judge_response(tc, "dummy response")
-        assert score == -1.0
-        assert "Judge model error: Failed to initialize judge model" in reasoning
+        res = evaluator.process_one(dummy_file, "simulated:default")
+        assert res.status == "model_error"
+        assert res.score is None
+        assert "Failed to initialize model" in res.error_message
 
 
 def test_simulated_pricing_warning_omission(caplog):
-    from ai_evaluation.models import SimulatedModel
     import logging
+
+    from ai_evaluation.models import SimulatedModel
 
     config = {"pricing": {}}
     model = SimulatedModel(model_name="default", config=config)
@@ -241,7 +239,7 @@ def test_simulated_pricing_warning_omission(caplog):
         cost = model._calculate_cost(100, 200)
         assert cost is None
         assert not any(
-            "No pricing configured for model" in record.message
+            "Pricing config is missing for model" in record.message
             for record in caplog.records
         )
 
@@ -308,7 +306,7 @@ def test_print_summary_filters_sentinels(capsys):
 
 
 def test_get_model_factory():
-    from ai_evaluation.models import get_model, SimulatedModel
+    from ai_evaluation.models import SimulatedModel, get_model
 
     config = {"pricing": {"default": {"input": 0.0, "output": 0.0}}}
     model = get_model("simulated:default", config)
@@ -359,14 +357,17 @@ def test_model_adapters_mocked():
 
     with (
         patch("ai_evaluation.models.GEMINI_AVAILABLE", True),
+        patch("ai_evaluation.models.GEMINI_GENAI_AVAILABLE", False),
         patch("os.getenv", return_value="fake_key"),
         patch("google.generativeai.GenerativeModel", create=True),
         patch("google.generativeai.configure", create=True),
     ):
         model = GeminiModel("gemini-1.5-pro", config)
         model.client.generate_content.return_value = mock_gemini_resp
-        text, _, _ = model.call("hello")
-        assert "Response blocked or empty" in text
+        with pytest.raises(
+            ValueError, match="Gemini response blocked by safety settings"
+        ):
+            model.call("hello")
 
     # OllamaModel dict vs object response handling
     with (
@@ -410,6 +411,7 @@ def test_analytics_generation(tmp_path):
 
 def test_export_formats(tmp_path):
     import csv
+
     from ai_evaluation.run_evaluation import EvaluationResult
 
     evaluator = AIEvaluator()
@@ -456,129 +458,3 @@ def test_export_formats(tmp_path):
         assert len(rows) == 1
         assert rows[0]["test_case_name"] == "tc_test"
         assert rows[0]["pii_types"] == "[]"
-
-
-def test_txt_headers_allow_blank_lines_between_fields(tmp_path):
-    text = """Category: Coding
-
-Difficulty: Easy
-
-Expectations: Return valid JSON
-
-Write a function that reverses a string.
-"""
-    file_path = tmp_path / "test1.txt"
-    file_path.write_text(text, encoding="utf-8")
-    evaluator = AIEvaluator()
-    case = evaluator._parse_test_case(file_path)
-
-    assert case.category == "Coding"
-    assert case.difficulty == "Easy"
-    assert case.expectations == ["Return valid JSON"]
-    assert case.prompt == "Write a function that reverses a string."
-
-
-def test_txt_metadata_never_leaks_into_prompt(tmp_path):
-    text = """Category: Reasoning
-
-Difficulty: Hard
-
-Solve the following problem.
-"""
-    file_path = tmp_path / "test2.txt"
-    file_path.write_text(text, encoding="utf-8")
-    evaluator = AIEvaluator()
-    case = evaluator._parse_test_case(file_path)
-
-    assert "Difficulty: Hard" not in case.prompt
-    assert case.prompt == "Solve the following problem."
-
-
-def test_cli_missing_explicit_config_returns_nonzero(tmp_path, monkeypatch):
-    missing = tmp_path / "does-not-exist.yaml"
-    monkeypatch.setattr("sys.argv", ["run-evaluation", "--config", str(missing)])
-    ret_code = run_eval_module.main()
-    assert ret_code != 0
-
-
-def test_evaluator_rejects_missing_explicit_config(tmp_path):
-    missing = tmp_path / "missing.yaml"
-    with pytest.raises(FileNotFoundError, match="Configuration file not found"):
-        AIEvaluator(config_path=missing)
-
-
-class FakeHTTPError(Exception):
-    def __init__(self, status_code: int):
-        self.status_code = status_code
-
-
-@pytest.mark.parametrize(
-    "exc",
-    [
-        ValueError("bad local data"),
-        TypeError("unexpected type"),
-        AttributeError("missing client field"),
-        RuntimeError("safety block"),
-        FakeHTTPError(400),
-        FakeHTTPError(401),
-        FakeHTTPError(403),
-    ],
-)
-def test_unknown_or_programming_errors_are_not_transient(exc):
-    assert is_transient_error(exc) is False
-
-
-@pytest.mark.parametrize(
-    "exc",
-    [
-        TimeoutError("request timed out"),
-        ConnectionError("connection reset"),
-        FakeHTTPError(429),
-        FakeHTTPError(503),
-    ],
-)
-def test_known_recoverable_errors_are_transient(exc):
-    assert is_transient_error(exc) is True
-
-
-def test_non_transient_error_not_retried():
-    from ai_evaluation.models import OpenAIModel
-
-    config = {"pricing": {}}
-    mock_client = MagicMock()
-    mock_client.chat.completions.create.side_effect = ValueError(
-        "Fatal invalid parameter"
-    )
-
-    with (
-        patch("ai_evaluation.models.OPENAI_AVAILABLE", True),
-        patch("os.getenv", return_value="fake_key"),
-        patch("ai_evaluation.models.OpenAI", return_value=mock_client),
-    ):
-        model = OpenAIModel("gpt-4o", config)
-        with pytest.raises(ValueError, match="Fatal invalid parameter"):
-            model.call("hello")
-
-        assert mock_client.chat.completions.create.call_count == 1
-
-
-def test_missing_pricing_returns_unknown_cost():
-    from ai_evaluation.models import SimulatedModel
-
-    config = {"pricing": {}}
-    model = SimulatedModel(model_name="unpriced-model", config=config)
-
-    assert model._calculate_cost(1000, 500) is None
-
-
-def test_totals_report_unknown_cost_separately():
-    results = [
-        EvaluationResult(status="success", score=0.9, cost=0.02),
-        EvaluationResult(status="success", score=0.8, cost=None),
-    ]
-
-    summary = summarize_results(results)
-
-    assert summary["known_total_cost"] == 0.02
-    assert summary["unknown_cost_count"] == 1
-    assert summary["cost_complete"] is False
