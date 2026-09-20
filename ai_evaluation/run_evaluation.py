@@ -1197,7 +1197,7 @@ def main() -> int:
     configure_logging(os.getenv("LOG_LEVEL", "INFO"))
 
     parser = argparse.ArgumentParser(
-        description="AI Evaluation Framework V2.1.8",
+        description="AI Evaluation Framework V2.1.9",
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog="""
 Examples:
@@ -1252,7 +1252,7 @@ Examples:
 
         console.print(
             Panel.fit(
-                "🤖 AI Benchmark V2.1.8\n"
+                "🤖 AI Benchmark V2.1.9\n"
                 f"Persona: {args.persona}\n"
                 f"Models: {', '.join(args.models)}",
                 style="bold green",
