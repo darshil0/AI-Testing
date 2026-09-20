@@ -487,3 +487,40 @@ def test_export_formats(tmp_path):
         assert len(rows) == 1
         assert rows[0]["test_case_name"] == "tc_test"
         assert rows[0]["pii_types"] == "[]"
+
+
+def test_package_init_and_main():
+    import ai_evaluation
+    from ai_evaluation import run_dashboard
+
+    # Test AttributeError on unknown attribute
+    with pytest.raises(AttributeError):
+        _ = ai_evaluation.NonExistentAttribute
+
+    # Test BaseModel attribute lookup
+    from ai_evaluation.models import BaseModel
+
+    assert ai_evaluation.BaseModel is BaseModel
+
+    # Test run_evaluation wrapper via module import
+    import ai_evaluation as pkg
+
+    # Note: run_evaluation in __init__.py is a function when imported directly before main overrides it
+    if callable(getattr(pkg, "run_evaluation", None)):
+        with patch("ai_evaluation.run_evaluation.main", return_value=0) as mock_m:
+            ret = pkg.run_evaluation()
+            assert ret == 0
+            mock_m.assert_called_once()
+
+    # Test run_dashboard wrapper
+    with patch("ai_evaluation.dashboard.main", return_value=0) as mock_dash_main:
+        ret = run_dashboard()
+        assert ret == 0
+        mock_dash_main.assert_called_once()
+
+    # Test __main__.py execution using runpy
+    import runpy
+
+    with patch.object(run_eval_module, "main") as mock_main:
+        runpy.run_module("ai_evaluation", run_name="__main__")
+        mock_main.assert_called_once()
