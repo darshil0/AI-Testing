@@ -55,26 +55,31 @@
 AI-Testing/
 ├── ai_evaluation/
 │   ├── __init__.py
+│   ├── __main__.py          # Package CLI module entrypoint
 │   ├── run_evaluation.py    # Main evaluation engine
 │   ├── dashboard.py         # Streamlit dashboard
 │   ├── models.py            # Model adapters (OpenAI, Anthropic, Gemini, Ollama)
 │   ├── analytics.py         # Matplotlib/Seaborn chart generation
 │   ├── config.yaml          # Centralized configuration
-│   └── test_cases/          # Test prompts and scenarios
+│   ├── test_cases/          # Test prompts and scenarios
+│   └── test_scenarios/      # Documentation of safety & adversarial test scenarios
 ├── tests/                   # Unit and integration tests
-├── pyproject.toml           # Project definition and dependencies
+├── docs/                    # Detailed documentation
+├── CHANGELOG.md
 ├── Dockerfile               # Container definition
-└── docs/                    # Detailed documentation
-
-
+├── LICENSE
+├── README.md
+├── docker-compose.yml
+└── pyproject.toml           # Project definition and dependencies
+```
 
 ## 📚 Documentation
 
 For detailed, step-by-step instructions and reference sheets, explore our documentation guides:
 
-* 🚀 **[Setup Guide](https://www.google.com/search?q=docs/Setup.md&utm_source=gemini)**: System prerequisites, environment variable configuration, virtual environment instructions, and directory verification.
-* 📋 **[Quick Reference Guide](https://www.google.com/search?q=docs/Quick%252520Reference.md&utm_source=gemini)**: Command-line cheat sheet, test case format examples (YAML, text, expected answers), and model provider prefix reference.
-* 🤝 **[Contributing Guidelines](https://www.google.com/search?q=docs/CONTRIBUTING.md&utm_source=gemini)**: Coding standards (PEP 8, Black), workflow branching, writing tests, and pull request checklist.
+* 🚀 **[Setup Guide](docs/Setup.md)**: System prerequisites, environment variable configuration, virtual environment instructions, and directory verification.
+* 📋 **[Quick Reference Guide](docs/Quick%20Reference.md)**: Command-line cheat sheet, test case format examples (YAML, text, expected answers), and model provider prefix reference.
+* 🤝 **[Contributing Guidelines](docs/CONTRIBUTING.md)**: Coding standards (PEP 8, Black), workflow branching, writing tests, and pull request checklist.
 
 ---
 
@@ -86,16 +91,25 @@ Clone the repository and install the project in editable mode:
 
 ```bash
 # Clone the repository
-git clone [https://github.com/darshil0/AI-Testing.git](https://github.com/darshil0/AI-Testing.git)
+git clone https://github.com/darshil0/AI-Testing.git
 cd AI-Testing
 
 # Create and activate a virtual environment
 python3 -m venv venv
 source venv/bin/activate  # On Windows: venv\Scripts\activate
 
-# Install the project and its dependencies
+# Install core framework
 pip install -e .
 
+# Alternatively, install with optional extras:
+# For dashboard and analytics visualizations
+pip install -e ".[dashboard]"
+
+# For development and running tests
+pip install -e ".[dev]"
+
+# For all provider SDKs and features
+pip install -e ".[all]"
 ```
 
 ### 2. API Configuration
@@ -249,10 +263,10 @@ run-evaluation --models simulated:default
 
 ## 📄 License
 
-This project is licensed under the MIT License - see [LICENSE](https://www.google.com/search?q=LICENSE&utm_source=gemini) for details.
+This project is licensed under the MIT License - see [LICENSE](LICENSE) for details.
 
 ---
 
 **Made with ❤️ by Darshil**
 
-[⬆ Back to Top](https://www.google.com/search?q=%2523ai-testing-&utm_source=gemini)
+[⬆ Back to Top](#ai-testing-)
