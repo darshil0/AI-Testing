@@ -66,3 +66,33 @@ directories:
         patch("streamlit.bar_chart"),
     ):
         show_dashboard()
+
+
+def test_dashboard_missing_dependencies():
+    import pytest
+
+    with patch("ai_evaluation.dashboard.DASHBOARD_AVAILABLE", False):
+        with pytest.raises(RuntimeError, match="Dashboard dependencies"):
+            show_dashboard()
+
+
+def test_dashboard_main_missing_dependencies():
+    import pytest
+
+    from ai_evaluation.dashboard import main
+
+    with patch("ai_evaluation.dashboard.DASHBOARD_AVAILABLE", False):
+        with pytest.raises(SystemExit) as exc_info:
+            main()
+        assert exc_info.value.code == 1
+
+
+def test_dashboard_main_execution():
+    from ai_evaluation.dashboard import main
+
+    with (
+        patch("ai_evaluation.dashboard.show_dashboard") as mock_show,
+        patch("streamlit.runtime.exists", return_value=True),
+    ):
+        main()
+        mock_show.assert_called_once()
