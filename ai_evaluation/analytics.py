@@ -15,12 +15,16 @@ except ImportError:
     ANALYTICS_AVAILABLE = False
 
 
-def generate_analytics(results_path=None, config_path=None) -> None:
+def _check_analytics_dependencies():
     if not ANALYTICS_AVAILABLE:
         raise RuntimeError(
-            "Analytics dependencies (matplotlib, seaborn, pandas) are not installed.\n"
-            "Install them with: pip install 'ai-evaluation-framework[dashboard]'"
+            "Analytics dependencies (matplotlib, seaborn, pandas, numpy) are not installed.\n"
+            "Install with: pip install 'ai-evaluation-framework[dashboard]' or pip install -e '.[dev,dashboard]'"
         )
+
+
+def generate_analytics(results_path=None, config_path=None) -> None:
+    _check_analytics_dependencies()
     base_dir = Path(__file__).parent.parent
 
     if results_path is None:

@@ -14,6 +14,7 @@ def test_models_additional_coverage():
     # OpenAI o1/o3 model call
     with (
         patch("ai_evaluation.models.OPENAI_AVAILABLE", True),
+        patch("ai_evaluation.models.OpenAI", create=True),
         patch("os.getenv", return_value="fake_key"),
     ):
         model = OpenAIModel("o1-preview", config)
@@ -58,16 +59,17 @@ def test_models_additional_coverage():
         assert out_tok == 18
 
     # Ollama model object response
+    mock_ollama = MagicMock()
+    mock_resp_obj = MagicMock()
+    mock_resp_obj.message.content = "Ollama obj reply"
+    mock_resp_obj.prompt_eval_count = 8
+    mock_resp_obj.eval_count = 14
+    mock_ollama.chat.return_value = mock_resp_obj
+
     with (
         patch("ai_evaluation.models.OLLAMA_AVAILABLE", True),
-        patch("ollama.chat", create=True) as mock_ollama_chat,
+        patch("ai_evaluation.models.ollama", mock_ollama, create=True),
     ):
-        mock_resp_obj = MagicMock()
-        mock_resp_obj.message.content = "Ollama obj reply"
-        mock_resp_obj.prompt_eval_count = 8
-        mock_resp_obj.eval_count = 14
-        mock_ollama_chat.return_value = mock_resp_obj
-
         model = OllamaModel("llama3", config)
         text, in_tok, out_tok = model.call("Hello Ollama")
         assert text == "Ollama obj reply"

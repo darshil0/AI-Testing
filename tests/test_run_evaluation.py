@@ -209,7 +209,7 @@ def test_missing_pricing_warning(caplog):
     with (
         patch("ai_evaluation.models.OPENAI_AVAILABLE", True),
         patch("os.getenv", return_value="fake"),
-        patch("ai_evaluation.models.OpenAI"),
+        patch("ai_evaluation.models.OpenAI", create=True),
     ):
         model = OpenAIModel(model_name="unconfigured_model", config=config)
 
@@ -385,14 +385,12 @@ def test_model_adapters_mocked():
         ):
             model.call("hello")
 
-    # OllamaModel dict vs object response handling
+        # OllamaModel dict vs object response handling
+        mock_ollama = MagicMock()
+        mock_ollama.chat.return_value = {"message": {"content": "Ollama dict reply"}}
     with (
         patch("ai_evaluation.models.OLLAMA_AVAILABLE", True),
-        patch(
-            "ollama.chat",
-            create=True,
-            return_value={"message": {"content": "Ollama dict reply"}},
-        ),
+        patch("ai_evaluation.models.ollama", mock_ollama, create=True),
     ):
         model = OllamaModel("llama3", config)
         text, _, _ = model.call("hello")
@@ -427,6 +425,17 @@ def test_analytics_generation(tmp_path):
     generate_analytics(results_path=str(results_file))
     report_file = tmp_path / "benchmark_report.png"
     assert report_file.exists()
+
+
+def test_analytics_missing_dependencies():
+    from ai_evaluation.analytics import generate_analytics
+
+    with patch("ai_evaluation.analytics.ANALYTICS_AVAILABLE", False):
+        with pytest.raises(
+            RuntimeError,
+            match="Analytics dependencies",
+        ):
+            generate_analytics()
 
 
 def test_export_formats(tmp_path):
