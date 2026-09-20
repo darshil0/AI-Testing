@@ -9,43 +9,18 @@
 ![Docker](https://img.shields.io/badge/Docker-Ready-2496ED?logo=docker&logoColor=white)
 ![License](https://img.shields.io/badge/license-MIT-green)
 
-> **Version 2.1.9** — A professional, enterprise-ready evaluation framework for benchmarking AI models across various domains. Test and compare models from OpenAI, Anthropic, Google, and local LLMs with standardized metrics, automated judging, and professional analytics.
+> Version 2.1.9 — Professional benchmarking and evaluation tooling for AI models across cloud providers, local LLMs, and custom test suites.
 
 ---
 
 ## ✨ Key Features
 
-### 🔌 Universal Model Support
-
-* **Cloud APIs**: OpenAI (GPT-4o), Anthropic (Claude), Google (Gemini).
-* **Local Models**: Ollama integration for Llama, Mistral, and other open-source models.
-* **Simulated Mode**: Test workflows without consuming API credits during development.
-
-### ⚖️ Intelligent Evaluation
-
-* **LLM-as-a-Judge**: Automated scoring using state-of-the-art models.
-* **Specialized Personas**: Evaluate from different perspectives (Critic, Helper, Auditor).
-* **Custom Criteria**: Define specific expectations for each test case.
-
-### 📊 Professional Analytics
-
-* **Automated Charts**: Generate publication-ready performance visualizations.
-* **Interactive Dashboard**: Explore results with a Streamlit web interface.
-* **Cost Tracking**: Real-time token usage and API cost estimation.
-* **Performance Metrics**: Latency, accuracy, and quality scoring.
-
-### 🛡️ Security & Quality
-
-* **PII Detection**: Automatic scanning for privacy leaks.
-* **Multi-dimensional Testing**: Categories include reasoning, coding, creativity, and safety.
-* **Reproducible Results**: Timestamped JSON exports for all evaluations.
-
-### 🚀 Developer Experience
-
-* **Rich CLI**: Intuitive terminal interface with real-time progress bars.
-* **Parallel Processing**: Fast evaluation with concurrent execution.
-* **Docker Ready**: Containerized environment for cross-platform consistency.
-* **CI/CD Integration**: GitHub Actions ready for automated regression testing.
+- Universal model support for OpenAI, Anthropic, Google Gemini, Ollama, and simulated/local testing
+- LLM-as-a-judge scoring with persona-based evaluation modes
+- Custom YAML/text test cases with structured expectations and metadata
+- Results export in JSON/CSV with dashboard and analytics generation
+- Security checks for PII leakage and automated benchmark reporting
+- Docker-ready container setup and CLI-first developer workflow
 
 ---
 
@@ -75,7 +50,7 @@ AI-Testing/
 
 ## 📚 Documentation
 
-For detailed, step-by-step instructions and reference sheets, explore our documentation guides:
+Use the local docs in this repository:
 
 * 🚀 **[Setup Guide](docs/Setup.md)**: System prerequisites, environment variable configuration, virtual environment instructions, and directory verification.
 * 📋 **[Quick Reference Guide](docs/Quick%20Reference.md)**: Command-line cheat sheet, test case format examples (YAML, text, expected answers), and model provider prefix reference.
@@ -85,18 +60,18 @@ For detailed, step-by-step instructions and reference sheets, explore our docume
 
 ## 🚀 Getting Started
 
-### 1. Installation
-
-Clone the repository and install the project in editable mode:
+### 1. Install
 
 ```bash
 # Clone the repository
 git clone https://github.com/darshil0/AI-Testing.git
 cd AI-Testing
+python3 -m venv .venv
+source .venv/bin/activate  # Windows: .venv\Scripts\activate
+pip install -e ".[dev]"
+```
 
-# Create and activate a virtual environment
-python3 -m venv venv
-source venv/bin/activate  # On Windows: venv\Scripts\activate
+For only the runtime package:
 
 # Install core framework
 pip install -e .
@@ -112,65 +87,103 @@ pip install -e ".[dev]"
 pip install -e ".[all]"
 ```
 
-### 2. API Configuration
-
-Configure your API keys in the environment file:
+For dashboard and analytics support:
 
 ```bash
-# Copy the template
-cp .env.example .env
-
-# Add your API keys (DO NOT commit this file to version control)
-nano .env 
-
+pip install -e ".[dashboard]"
 ```
 
-### 3. Running an Evaluation
-
-The framework provides two primary entry points:
+### 2. Configure API keys
 
 ```bash
-# Run a test with the simulated model (no API key needed)
+cp .env.example .env
+```
+
+Then add your credentials to `.env`:
+
+```dotenv
+OPENAI_API_KEY=your_openai_key_here
+ANTHROPIC_API_KEY=your_anthropic_key_here
+GOOGLE_API_KEY=your_google_key_here
+LOG_LEVEL=INFO
+```
+
+### 3. Run evaluations
+
+```bash
+# Simulated model, no API key required
 run-evaluation --models simulated:default
 
-# Evaluate a real model
+# Real model providers
 run-evaluation --models openai:gpt-4o
+run-evaluation --models anthropic:claude-3-5-sonnet-20241022
+run-evaluation --models gemini:gemini-1.5-pro
+run-evaluation --models ollama:llama3
 
-# Compare multiple models side-by-side
+# Compare multiple models
 run-evaluation --models openai:gpt-4o anthropic:claude-3-5-sonnet-20241022
 
-# Run and consolidate outputs in CSV format
+# Export CSV instead of JSON
 run-evaluation --models simulated:default --export-format csv
 
-# Run sequentially (one test case at a time for debugging)
+# Run sequentially (one case at a time)
 run-evaluation --models simulated:default --sequential
 
-# Allow process exit code 0 even if evaluation failures or errors occur
+# Return exit code 0 even when some evaluations fail
 run-evaluation --models simulated:default --allow-failures
 
-# Specify a custom configuration file path
+# Use a custom config file
 run-evaluation --models simulated:default --config path/to/config.yaml
 
-# Generate static analytics charts (Matplotlib / Seaborn)
+# Generate static analytics charts
 generate-analytics
 
-# Launch the interactive Streamlit dashboard
+# Launch the interactive dashboard
 view-dashboard
 
-# Alternatively, run modules directly
+# Direct module execution
 python -m ai_evaluation
 python -m ai_evaluation.dashboard
 python -m ai_evaluation.analytics
-
 ```
 
 ---
 
-## 💻 Usage Guide
+## 🧪 Test Case Format
 
-### Model Format
+### YAML format
 
-Models are specified as `provider:model_name`:
+```yaml
+name: code_optimization
+category: Coding
+difficulty: Hard
+prompt: |
+  Optimize this Python function for better time complexity:
+  def find_duplicates(arr):
+      pass
+
+expectations:
+  - Mention using a set for O(n) complexity
+  - Provide a working implementation
+  - Explain the optimization
+```
+
+### Plain text format
+
+```text
+Category: Reasoning
+Difficulty: Hard
+
+If a train travels 60 mph for 2 hours and then 80 mph for 1 hour, what is the average speed for the whole journey?
+```
+
+---
+
+## 🖥️ Usage Notes
+
+### Model identifiers
+
+Use the format `provider:model_name`:
 
 | Provider | Example |
 | --- | --- |
@@ -180,93 +193,666 @@ Models are specified as `provider:model_name`:
 | Ollama | `ollama:llama3` |
 | Simulated | `simulated:default` |
 
-### CLI Arguments
+### Judge personas
 
-| Option | Description | Default | Choices / Format |
-| --- | --- | --- | --- |
-| `--models` | Space-separated list of target models to evaluate | `simulated:default` | `provider:model_name` |
-| `--persona` | Judge persona used for LLM-as-a-Judge scoring | `default` | `default`, `critic`, `helper`, `auditor` |
-| `--export-format` | Consolidation output format for run results | `json` | `json`, `csv` |
-| `--sequential` | Run evaluations sequentially instead of in parallel | `False` | Flag |
-| `--allow-failures` | Opt-in flag to exit with status code 0 even if test cases or judge evaluations fail | `False` | Flag |
-| `--config` | Custom path to configuration file | `None` | File path |
-
-### Judge Personas
-
-* `default`: Objective and balanced evaluation.
-* `critic`: Strict scoring; penalizes minor errors or verbosity.
-* `helper`: Focuses on clarity, tone, and helpfulness.
-* `auditor`: Security-focused; checks for safety and policy violations.
-
----
-
-## 📝 Creating Test Cases
-
-### YAML Format (Recommended)
-
-Create a `.yaml` or `.yml` file in `ai_evaluation/test_cases/`:
-
-```yaml
-name: code_optimization
-category: Coding
-difficulty: Hard
-prompt: |
-  Optimize this Python function for better time complexity:
-  def find_duplicates(arr):
-      # inefficient code here
-      pass
-
-expectations:
-  - "Mention using a set for O(n) complexity"
-  - "Provide working implementation"
-  - "Explain the optimization"
-
-```
-
-### Plain Text Format
-
-Create a `.txt` file in `ai_evaluation/test_cases/`. Optional `Category:` and `Difficulty:` header lines are parsed as metadata and **stripped from the prompt** before it is sent to the model — only the body text below the headers is used.
-
-```text
-Category: Reasoning
-Difficulty: Hard
-
-If a train travels 60 mph for 2 hours and then 80 mph for 1 hour, what is the average speed for the whole journey?
-
-```
+- `default`: balanced and objective
+- `critic`: strict and detail-oriented
+- `helper`: clarity and usability focused
+- `auditor`: safety and compliance focused
 
 ---
 
 ## 🧪 Development
 
-### Running Tests & Linting
-
 ```bash
-# Run all tests with coverage
+# Run tests
+pytest
+
+# Run tests with coverage
 pytest --cov=ai_evaluation
 
-# Run code style checks (Flake8)
+# Run linting
 flake8 .
-
-# Run simulated evaluation
-run-evaluation --models simulated:default
-
 ```
-
-### Adding a New Model Provider
-
-1. Define a new class in `ai_evaluation/models.py` inheriting from `BaseModel`.
-2. Register the provider in the `get_model()` factory function.
-3. Update `config.yaml` with the provider's pricing.
 
 ---
 
 ## 📄 License
 
-This project is licensed under the MIT License - see [LICENSE](LICENSE) for details.
+This project is licensed under the MIT License. See [LICENSE](LICENSE) for details.
 
 ---
 
-**Made with ❤️ by Darshil**
+Made with ❤️ by Darshil.
+
+[⬆ Back to Top](#ai-testing-)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+ serieus
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+n
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+This project is licensed under the MIT License - see [LICENSE](LICENSE) for details.
+
+
 
 [⬆ Back to Top](#ai-testing-)
