@@ -589,7 +589,7 @@ UNTRUSTED MODEL RESPONSE:
                 model_type=model_id,
                 prompt=tc.prompt,
                 response=response,
-                status="success",
+                status=judge_status,
                 score=round(score, 3),
                 judge_reasoning=reason,
                 duration_seconds=duration,
@@ -601,7 +601,6 @@ UNTRUSTED MODEL RESPONSE:
                 judge_cost=round(j_cost, 6) if j_cost is not None else None,
                 pii_found=pii_found,
                 pii_types=pii_types,
-                status=judge_status,
             )
         except Exception as je:
             logger.warning(f"Judge error evaluating {tc.name} with {model_id}: {je}")
