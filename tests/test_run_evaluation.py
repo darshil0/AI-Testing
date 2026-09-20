@@ -397,6 +397,37 @@ def test_model_adapters_mocked():
         assert text == "Ollama dict reply"
 
 
+def test_legacy_schema_normalization_and_cost_edge_cases():
+    from ai_evaluation.models import SimulatedModel
+    from ai_evaluation.run_evaluation import EvaluationResult
+
+    # Test legacy cost / judge_score field mapping in EvaluationResult
+    legacy_res = EvaluationResult(
+        test_case_name="legacy_tc",
+        category="General",
+        difficulty="Easy",
+        model_type="simulated:default",
+        prompt="hello",
+        response="world",
+        judge_score=0.95,
+        cost=0.0012,
+    )
+    assert legacy_res.score == 0.95
+    assert legacy_res.judge_score == 0.95
+    assert legacy_res.estimated_cost == 0.0012
+    assert legacy_res.cost == 0.0012
+
+    # Test cost calculation input validation
+    model = SimulatedModel("default", {"pricing": {"simulated:default": {"input": 1.0, "output": 2.0}}})
+    assert model._calculate_cost(True, 100) is None
+    assert model._calculate_cost(100, "invalid") is None
+    assert model._calculate_cost(-10, 100) is None
+
+    # Test invalid pricing config
+    invalid_pricing_model = SimulatedModel("default", {"pricing": {"simulated:default": {"input": "free", "output": 2.0}}})
+    assert invalid_pricing_model._calculate_cost(100, 100) is None
+
+
 def test_analytics_generation(tmp_path):
     pytest.importorskip("matplotlib")
     pytest.importorskip("pandas")

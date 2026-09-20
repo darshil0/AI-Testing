@@ -30,45 +30,31 @@
 AI-Testing/
 ├── ai_evaluation/
 │   ├── __init__.py
-│   ├── __main__.py
-│   ├── analytics.py
-│   ├── config.yaml
-│   ├── dashboard.py
-│   ├── models.py
-│   ├── run_evaluation.py
-│   ├── test_cases/
-│   └── test_scenarios/
-├── docs/
-│   ├── Setup.md
-│   ├── Quick Reference.md
-│   ├── CONTRIBUTING.md
-│   ├── migration_guide.md
-│   ├── fixes_summary.md
-│   └── implementation_checklist.md
-├── tests/
-├── .env.example
-├── .flake8
-├── .gitignore
-├── Dockerfile
-├── docker-compose.yml
+│   ├── __main__.py          # Package CLI module entrypoint
+│   ├── run_evaluation.py    # Main evaluation engine
+│   ├── dashboard.py         # Streamlit dashboard
+│   ├── models.py            # Model adapters (OpenAI, Anthropic, Gemini, Ollama)
+│   ├── analytics.py         # Matplotlib/Seaborn chart generation
+│   ├── config.yaml          # Centralized configuration
+│   ├── test_cases/          # Test prompts and scenarios
+│   └── test_scenarios/      # Documentation of safety & adversarial test scenarios
+├── tests/                   # Unit and integration tests
+├── docs/                    # Detailed documentation
+├── CHANGELOG.md
+├── Dockerfile               # Container definition
 ├── LICENSE
-├── pyproject.toml
 ├── README.md
-└── requirements.lock
+├── docker-compose.yml
+└── pyproject.toml           # Project definition and dependencies
 ```
-
----
 
 ## 📚 Documentation
 
 Use the local docs in this repository:
 
-- [Setup Guide](docs/Setup.md)
-- [Quick Reference](docs/Quick%20Reference.md)
-- [Contributing Guide](docs/CONTRIBUTING.md)
-- [Migration Guide](docs/migration_guide.md)
-- [Fixes Summary](docs/fixes_summary.md)
-- [Implementation Checklist](docs/implementation_checklist.md)
+* 🚀 **[Setup Guide](docs/Setup.md)**: System prerequisites, environment variable configuration, virtual environment instructions, and directory verification.
+* 📋 **[Quick Reference Guide](docs/Quick%20Reference.md)**: Command-line cheat sheet, test case format examples (YAML, text, expected answers), and model provider prefix reference.
+* 🤝 **[Contributing Guidelines](docs/CONTRIBUTING.md)**: Coding standards (PEP 8, Black), workflow branching, writing tests, and pull request checklist.
 
 ---
 
@@ -77,6 +63,7 @@ Use the local docs in this repository:
 ### 1. Install
 
 ```bash
+# Clone the repository
 git clone https://github.com/darshil0/AI-Testing.git
 cd AI-Testing
 python3 -m venv .venv
@@ -86,8 +73,18 @@ pip install -e ".[dev]"
 
 For only the runtime package:
 
-```bash
+# Install core framework
 pip install -e .
+
+# Alternatively, install with optional extras:
+# For dashboard and analytics visualizations
+pip install -e ".[dashboard]"
+
+# For development and running tests
+pip install -e ".[dev]"
+
+# For all provider SDKs and features
+pip install -e ".[all]"
 ```
 
 For dashboard and analytics support:
@@ -854,6 +851,8 @@ n
 
 
 
+This project is licensed under the MIT License - see [LICENSE](LICENSE) for details.
 
 
 
+[⬆ Back to Top](#ai-testing-)

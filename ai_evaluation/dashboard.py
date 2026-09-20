@@ -81,23 +81,23 @@ def show_dashboard():
     custom_config_arg = st.sidebar.text_input(
         "Config File Path", value="ai_evaluation/config.yaml"
     )
-    config_path = Path(custom_config_arg)
-    if not config_path.exists():
-        config_path = script_dir / "config.yaml"
-
     results_dir_name = "results"
-    if config_path.exists():
-        try:
-            from .run_evaluation import safe_yaml_load
+    try:
+        from .run_evaluation import resolve_config_path, safe_yaml_load
 
-            with open(config_path, "r", encoding="utf-8") as f:
-                config = safe_yaml_load(f)
-                if isinstance(config, dict):
-                    results_dir_name = config.get("directories", {}).get(
-                        "results", "results"
-                    )
-        except Exception as e:
-            st.sidebar.warning(f"Could not load config: {e}")
+        config_path = resolve_config_path(
+            custom_config_arg if custom_config_arg.strip() else None
+        )
+        with open(config_path, "r", encoding="utf-8") as f:
+            config = safe_yaml_load(f) or {}
+            results_dir_name = (
+                config.get("directories", {}).get("results", "results")
+                if isinstance(config, dict)
+                else "results"
+            )
+    except Exception as e:
+        config_path = script_dir / "config.yaml"
+        st.sidebar.warning(f"Could not load config: {e}")
 
     results_dir = Path(results_dir_name)
     if not results_dir.is_absolute():
@@ -132,6 +132,18 @@ def show_dashboard():
         st.warning("Selected evaluation run contains no data.")
         st.stop()
 
+    # Standardize legacy/current column aliases
+    if "cost" in df.columns and "estimated_cost" not in df.columns:
+        df["estimated_cost"] = df["cost"]
+    elif "estimated_cost" in df.columns and "cost" not in df.columns:
+        df["cost"] = df["estimated_cost"]
+
+    if "score" in df.columns and "judge_score" not in df.columns:
+        df["judge_score"] = df["score"]
+    elif "judge_score" in df.columns and "score" not in df.columns:
+        df["score"] = df["judge_score"]
+
+    # Ensure required columns exist with fallback defaults
     required_defaults = {
         "test_case_name": "Unknown",
         "model_type": "Unknown",
@@ -151,11 +163,15 @@ def show_dashboard():
         if col not in df.columns:
             df[col] = default_val
 
-    if "score" in df.columns:
-        df["score"] = pd.to_numeric(df["score"], errors="coerce")
-    elif "judge_score" in df.columns:
-        df["score"] = pd.to_numeric(df["judge_score"], errors="coerce")
-        df.loc[df["score"] < 0, "score"] = None
+    # Standardize score column from score or judge_score
+    df["score"] = pd.to_numeric(df["score"], errors="coerce")
+    df.loc[df["score"] < 0, "score"] = None
+
+    df["judge_score"] = pd.to_numeric(df["judge_score"], errors="coerce")
+    df.loc[df["judge_score"] < 0, "judge_score"] = None
+
+    df["estimated_cost"] = pd.to_numeric(df["estimated_cost"], errors="coerce").fillna(0.0)
+    df["duration_seconds"] = pd.to_numeric(df["duration_seconds"], errors="coerce")
 
     valid_score_df = df[df["status"].isin(["success"]) & df["score"].notna()].copy()
     valid_dur_df = df[df["duration_seconds"].notna()].copy()

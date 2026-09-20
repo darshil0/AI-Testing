@@ -224,6 +224,7 @@ def resolve_config_path(config_arg: Optional[str] = None) -> Path:
 
     candidates = [
         Path.cwd() / "ai_evaluation" / "config.yaml",
+        Path.cwd() / "config.yaml",
         Path(__file__).resolve().parent / "config.yaml",
     ]
 

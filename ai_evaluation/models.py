@@ -68,7 +68,24 @@ class BaseModel:
         raise NotImplementedError
 
     def _calculate_cost(self, input_tokens: int, output_tokens: int) -> Optional[float]:
+        if input_tokens is None or output_tokens is None:
+            return None
+
+        if isinstance(input_tokens, bool) or isinstance(output_tokens, bool):
+            return None
+
+        try:
+            in_tok = int(input_tokens)
+            out_tok = int(output_tokens)
+            if in_tok < 0 or out_tok < 0:
+                return None
+        except (ValueError, TypeError):
+            return None
+
         pricing_config = self.config.get("pricing", {})
+        if not isinstance(pricing_config, dict):
+            return None
+
         provider_name = getattr(self, "provider_name", "unknown")
 
         # Key lookup precedence: "provider:model_name", "model_name"
@@ -84,20 +101,31 @@ class BaseModel:
                 )
             return None
 
-        if input_tokens is None or output_tokens is None:
-            return None
-
         if not isinstance(prices, dict):
             return None
 
         input_price = prices.get("input")
         output_price = prices.get("output")
-        if input_price is None or output_price is None:
+
+        if (
+            input_price is None
+            or output_price is None
+            or isinstance(input_price, bool)
+            or isinstance(output_price, bool)
+        ):
             return None
 
-        return (input_tokens / 1_000_000) * input_price + (
-            output_tokens / 1_000_000
-        ) * output_price
+        try:
+            in_price = float(input_price)
+            out_price = float(output_price)
+            if in_price < 0 or out_price < 0:
+                return None
+        except (ValueError, TypeError):
+            return None
+
+        return (in_tok / 1_000_000) * in_price + (
+            out_tok / 1_000_000
+        ) * out_price
 
 
 def is_transient_error(exception: Exception) -> bool:
