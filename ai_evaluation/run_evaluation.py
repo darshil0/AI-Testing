@@ -114,6 +114,25 @@ class TestCase(BaseModel):
     parse_error: Optional[str] = None
 
 
+def validate_score(value: object) -> float:
+    """Strictly validate a judge score."""
+    if isinstance(value, bool):
+        raise ValueError("Judge score must be numeric, not boolean")
+
+    if not isinstance(value, (int, float)):
+        raise ValueError("Judge score must be numeric")
+
+    score = float(value)
+
+    if not math.isfinite(score):
+        raise ValueError("Judge score must be finite")
+
+    if not 0.0 <= score <= 1.0:
+        raise ValueError("Judge score must be in [0.0, 1.0]")
+
+    return score
+
+
 class EvaluationResult(BaseModel):
     test_case_name: str
     category: str
@@ -144,6 +163,63 @@ class EvaluationResult(BaseModel):
     pii_found: bool = False
     pii_types: List[str] = Field(default_factory=list)
     timestamp: str = Field(default_factory=lambda: datetime.datetime.now().isoformat())
+    status: str = "success"
+
+    def __init__(self, **data: Any) -> None:
+        if "cost" in data and "estimated_cost" not in data:
+            data["estimated_cost"] = data.pop("cost")
+        if "score" in data and "judge_score" not in data:
+            data["judge_score"] = data.pop("score")
+        super().__init__(**data)
+
+    @property
+    def cost(self) -> Optional[float]:
+        return self.estimated_cost
+
+    @property
+    def score(self) -> Optional[float]:
+        return self.judge_score
+
+
+def summarize_results(results: List[EvaluationResult]) -> Dict[str, Any]:
+    """Compute summary statistics for a list of evaluation results."""
+    valid_scores = [r.score for r in results if r.score is not None and r.score >= 0.0]
+    failed_judge_count = sum(1 for r in results if r.score is None or r.score < 0.0)
+    known_costs = [r.cost for r in results if r.cost is not None]
+    unknown_cost_count = sum(1 for r in results if r.cost is None)
+    total_cost = sum(known_costs)
+    cost_complete = unknown_cost_count == 0
+
+    avg_score = sum(valid_scores) / len(valid_scores) if valid_scores else None
+
+    return {
+        "total_cases": len(results),
+        "valid_scores_count": len(valid_scores),
+        "avg_score": avg_score,
+        "failed_judge_count": failed_judge_count,
+        "known_total_cost": round(total_cost, 6),
+        "unknown_cost_count": unknown_cost_count,
+        "cost_complete": cost_complete,
+    }
+
+
+def resolve_config_path(config_arg: Any = None) -> Path:
+    """Resolve configuration file path strictly."""
+    if config_arg is not None:
+        path = Path(config_arg).expanduser()
+        if not path.is_file():
+            raise FileNotFoundError(f"Configuration file not found: {path}")
+        return path
+
+    default_path = Path("ai_evaluation/config.yaml")
+    if default_path.is_file():
+        return default_path
+
+    alt_path = Path(__file__).parent / "config.yaml"
+    if alt_path.is_file():
+        return alt_path
+
+    raise FileNotFoundError(f"Configuration file not found: {default_path}")
 
     def model_post_init(self, __context: Any) -> None:
         if self.score is not None and self.judge_score is None:
@@ -200,11 +276,11 @@ class AIEvaluator:
                 )
             config_path = found
 
-        with open(config_path, "r", encoding="utf-8") as f:
+        with open(self.config_path, "r", encoding="utf-8") as f:
             self.config = yaml.safe_load(f)
 
         # Resolve paths relative to config location
-        config_dir = Path(config_path).parent
+        config_dir = self.config_path.parent
 
         directories = self.config.get("directories", {})
         test_cases_path = directories.get("test_cases", "test_cases")
@@ -525,6 +601,7 @@ UNTRUSTED MODEL RESPONSE:
                 judge_cost=round(j_cost, 6) if j_cost is not None else None,
                 pii_found=pii_found,
                 pii_types=pii_types,
+                status=judge_status,
             )
         except Exception as je:
             logger.warning(f"Judge error evaluating {tc.name} with {model_id}: {je}")
@@ -730,7 +807,7 @@ UNTRUSTED MODEL RESPONSE:
         console.print(f"[green]✓[/] Results saved to: {run_path.name}")
 
 
-def main() -> None:
+def main() -> int:
     import argparse
 
     load_dotenv()
@@ -766,7 +843,7 @@ Examples:
     )
     parser.add_argument(
         "--config",
-        default="ai_evaluation/config.yaml",
+        default=None,
         help="Path to configuration file",
     )
     parser.add_argument(
@@ -788,7 +865,8 @@ Examples:
         sys.exit(1)
 
     try:
-        evaluator = AIEvaluator(config_path=args.config)
+        config_path = resolve_config_path(args.config)
+        evaluator = AIEvaluator(config_path=config_path)
         console.print(
             Panel.fit(
                 f"🤖 AI Benchmark V2.1.7\nPersona: {args.persona}\nModels: {', '.join(args.models)}",
@@ -830,6 +908,7 @@ Examples:
 
         console.print("\n[bold cyan]✨ Evaluation complete![/]")
         console.print("[dim]Run 'view-dashboard' for interactive dashboard[/]")
+        return 0
 
     except FileNotFoundError as e:
         console.print(f"[bold red]Error:[/] {e}")
@@ -844,4 +923,4 @@ Examples:
 
 
 if __name__ == "__main__":
-    main()
+    sys.exit(main())

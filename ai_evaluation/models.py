@@ -72,12 +72,21 @@ class BaseModel:
                 )
             return None
 
-        input_price = prices.get("input", 0.0) if isinstance(prices, dict) else 0.0
-        output_price = prices.get("output", 0.0) if isinstance(prices, dict) else 0.0
+        if input_tokens is None or output_tokens is None:
+            return None
 
-        return (input_tokens / 1_000_000 * input_price) + (
-            output_tokens / 1_000_000 * output_price
-        )
+        pricing = pricing_config[self.model_name]
+        if not isinstance(pricing, dict):
+            return None
+
+        input_price = pricing.get("input")
+        output_price = pricing.get("output")
+        if input_price is None or output_price is None:
+            return None
+
+        return (input_tokens / 1_000_000) * input_price + (
+            output_tokens / 1_000_000
+        ) * output_price
 
 
 def is_transient_error(exception: Exception) -> bool:
